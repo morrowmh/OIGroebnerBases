@@ -44,8 +44,9 @@ composeOIMaps(OIMap, OIMap) := (f, g) -> (
     -- Return the composition if it already exists
     if compCache#?(f, g) then return compCache#(f, g);
 
+    -- Compute the composition
     L := for i in source g list f g i;
-    ret := new OIMap from {targWidth => f.targWidth, img => L};
+    ret := makeOIMap(f.targWidth, L);
 
     -- Store the composition
     compCache#(f, g) = ret;

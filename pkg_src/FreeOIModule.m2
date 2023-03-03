@@ -68,7 +68,7 @@ net VectorInWidth := f -> (
     if #oiTerms == 1 then return net oiTerms#0;
     
     str := "";
-    for i to #oiTerms - 2 do str = str|net oiTerms#i|" + "; -- WISHLIST: Make negatives look better
+    for i to #oiTerms - 2 do str = str|net oiTerms#i|" + "; -- TODO: Make negatives look better
     str = str|net oiTerms#-1;
     str
 )
@@ -76,7 +76,7 @@ net VectorInWidth := f -> (
 getFreeModuleInWidth = method(TypicalValue => ModuleInWidth)
 getFreeModuleInWidth(FreeOIModule, ZZ) := (F, n) -> (
     -- Return the module if it already exists
-    if F.modules#?n then ( use ring F.modules#n; return F.modules#n );
+    if F.modules#?n then return F.modules#n;
 
     -- Generate the degrees
     alg := getAlgebraInWidth(F.polyOIAlg, n);
@@ -110,6 +110,9 @@ getFreeModuleInWidth(FreeOIModule, ZZ) := (F, n) -> (
 
 -- Shorthand for getFreeModuleInWidth
 FreeOIModule _ ZZ := (F, n) -> getFreeModuleInWidth(F, n)
+
+-- Use a ModuleInWidth
+use ModuleInWidth := M -> use getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.Width)
 
 widthOfElement = method(TypicalValue => ZZ)
 widthOfElement VectorInWidth := f -> (class f).Width

@@ -28,14 +28,14 @@ makePolynomialOIAlgebra(Ring, ZZ, Symbol) := opts -> (K, c, x) -> (
 
 -- Lookup table for linearFromRowCol
 orderTable := new HashTable from {
-    ColUpRowUp => (P, n, i, j) -> P.varRows * (n - j + 1) - i,
-    ColUpRowDown => (P, n, i, j) -> P.varRows * (n - j) + i - 1,
-    ColDownRowUp => (P, n, i, j) -> P.varRows * j - i,
-    ColDownRowDown => (P, n, i, j) -> P.varRows * (j - 1) + i - 1,
-    RowUpColUp => (P, n, i, j) -> n * (P.varRows - i + 1) - j,
-    RowUpColDown => (P, n, i, j) -> n * (P.varRows - i) + j - 1,
-    RowDownColUp => (P, n, i, j) -> n * i - j,
-    RowDownColDown => (P, n, i, j) -> n * (i - 1) + j - 1
+    ColUpRowUp => (P, n, i, j) -> P.varRows * (n - j + 1) - i,      -- x_(i',j') < x_(i,j) if j'<j or j'=j and i'<i
+    ColUpRowDown => (P, n, i, j) -> P.varRows * (n - j) + i - 1,    -- x_(i',j') < x_(i,j) if j'<j or j'=j and i'>i
+    ColDownRowUp => (P, n, i, j) -> P.varRows * j - i,              -- x_(i',j') < x_(i,j) if j'>j or j'=j and i'<i
+    ColDownRowDown => (P, n, i, j) -> P.varRows * (j - 1) + i - 1,  -- x_(i',j') < x_(i,j) if j'>j or j'=j and i'>i
+    RowUpColUp => (P, n, i, j) -> n * (P.varRows - i + 1) - j,      -- x_(i',j') < x_(i,j) if i'<i or i'=i and j'<j
+    RowUpColDown => (P, n, i, j) -> n * (P.varRows - i) + j - 1,    -- x_(i',j') < x_(i,j) if i'<i or i'=i and j'>j
+    RowDownColUp => (P, n, i, j) -> n * i - j,                      -- x_(i',j') < x_(i,j) if i'>i or i'=i and j'<j
+    RowDownColDown => (P, n, i, j) -> n * (i - 1) + j - 1           -- x_(i',j') < x_(i,j) if i'>i or i'=i and j'>j
 }
 
 -- Linearize the variables based on P.varOrder
@@ -44,7 +44,7 @@ linearFromRowCol := (P, n, i, j) -> (orderTable#(P.varOrder))(P, n, i, j)
 getAlgebraInWidth = method(TypicalValue => PolynomialRing)
 getAlgebraInWidth(PolynomialOIAlgebra, ZZ) := (P, n) -> (
     -- Return the algebra if it already exists
-    if P.algebras#?n then ( use P.algebras#n; return P.algebras#n );
+    if P.algebras#?n then return P.algebras#n;
 
     -- Generate the variables
     local ret;
@@ -53,7 +53,7 @@ getAlgebraInWidth(PolynomialOIAlgebra, ZZ) := (P, n) -> (
         for i from 1 to P.varRows do variables#(linearFromRowCol(P, n, i, j)) = P.varSym_(i, j);
 
     -- Make the algebra
-    ret = P.baseField[variables, Degrees => {#variables:1}, MonomialOrder => {Position => Down, Lex}];
+    ret = P.baseField[variables, Degrees => {#variables:1}, MonomialOrder => {Lex}];
 
     -- Store the algebra
     P.algebras#n = ret;
@@ -76,7 +76,7 @@ getInducedAlgebraMap(PolynomialOIAlgebra, OIMap) := (P, f) -> (
     src := P_m;
     targ := P_n;
     subs := flatten for j from 1 to m list
-        for i from 1 to P.varRows list src_(linearFromRowCol(P, m, i, j)) => targ_(linearFromRowCol(P, n, i, f j));
+        for i from 1 to P.varRows list src_(linearFromRowCol(P, m, i, j)) => targ_(linearFromRowCol(P, n, i, f j)); -- Permute the second index
 
     -- Make the map
     ret := map(targ, src, subs);

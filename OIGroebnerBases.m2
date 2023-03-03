@@ -24,43 +24,90 @@ newPackage("OIGroebnerBases",
 
 export {
     -- Types
-    "OIMap",
-    "PolynomialOIAlgebra",
-    "FreeOIModule", "ModuleInWidth", "VectorInWidth",
-    "InducedModuleMap",
-    "FreeOIModuleMap",
-    "OIResolution",
+        -- From OIMap.m2
+        "OIMap",
+
+        -- From PolynomialOIAlgebra.m2
+        "PolynomialOIAlgebra",
+
+        -- From FreeOIModule.m2
+        "FreeOIModule", "ModuleInWidth", "VectorInWidth",
+
+        -- From InducedModuleMap.m2
+        "InducedModuleMap",
+
+        -- From FreeOIModuleMap.m2
+        "FreeOIModuleMap",
+
+        -- From OIResolution.m2
+        "OIResolution",
 
     -- Keys
-    "ColUpRowUp", "ColUpRowDown", "ColDownRowUp", "ColDownRowDown", "RowUpColUp", "RowUpColDown", "RowDownColUp", "RowDownColDown",
+        -- From PolynomialOIAlgebra.m2
+        "ColUpRowUp", "ColUpRowDown", "ColDownRowUp", "ColDownRowDown", "RowUpColUp", "RowUpColDown", "RowDownColUp", "RowDownColDown",
 
     -- Methods
-    "makeOIMap", "getOIMaps", "composeOIMaps",
-    "makePolynomialOIAlgebra", "getAlgebraInWidth", "getInducedAlgebraMap",
-    "getGenWidths", "getDegShifts", "makeFreeOIModule", "getMonomialOrder", "isZero", "getFreeModuleInWidth", "widthOfElement", "freeOIModuleFromElement", "installBasisElements",
-    "makeMonic",
-    "getInducedModuleMap",
-    "makeFreeOIModuleMap",
-    "oiGB", "minimizeOIGB", "oiSyz", "isOIGB",
-    "oiRes", "isComplex",
+        -- From OIMap.m2
+        "makeOIMap", "getOIMaps", "composeOIMaps",
+    
+        -- From PolynomialOIAlgebra.m2
+        "makePolynomialOIAlgebra", "getAlgebraInWidth", "getInducedAlgebraMap",
+    
+        -- From FreeOIModule.m2
+        "getGenWidths", "getDegShifts", "makeFreeOIModule", "getMonomialOrder", "isZero", "getFreeModuleInWidth", "widthOfElement", "freeOIModuleFromElement", "installBasisElements",
+    
+        -- From Terms.m2
+        "makeMonic",
+    
+        -- From InducedModuleMap.m2
+        "getInducedModuleMap",
+
+        -- From FreeOIModuleMap.m2
+        "makeFreeOIModuleMap",
+
+        -- From Algorithms.m2
+        "oiGB", "minimizeOIGB", "oiSyz", "isOIGB",
+
+        -- From OIResolution.m2
+        "oiRes", "isComplex",
 
     -- Options
-    "VariableOrder",
-    "DegreeShifts",
-    "MinimalOIGB"
+        -- From PolynomialOIAlgebra.m2
+        "VariableOrder",
+
+        -- From FreeOIModule.m2
+        "DegreeShifts",
+    
+        -- From Algorithms.m2
+        "MinimalOIGB"
 }
 
 scan({
     -- Keys
-    targWidth, img,
-    baseField, varRows, varSym, varOrder, algebras, maps,
-    polyOIAlg, basisSym, genWidths, degShifts, monOrder, modules, Width, basisElements, basisElementPositions,
-    freeOIMod, ringElement, oiMap, idx, basisIndex, quo,
-    srcMod, targMod, genImages,
-    rem, triples,
+        -- From OIMap.m2
+        targWidth, img,
+
+        -- From PolynomialOIAlgebra.m2
+        baseField, varRows, varSym, varOrder, algebras, maps,
+    
+        -- From FreeOIModule.m2
+        polyOIAlg, basisSym, genWidths, degShifts, monOrder, modules, freeOIMod, Width, basisElements, basisElementPositions,
+    
+        -- From Terms.m2
+        ringElement, oiMap, idx, basisIndex, quo,
+    
+        -- From FreeOIModuleMap.m2
+        srcMod, targMod, genImages,
+    
+        -- From Algorithms.m2
+        rem, triples,
 
     -- Options
-    CombineLikeTerms, FilterMaxPairs
+        -- From Terms.m2
+        CombineLikeTerms,
+        
+        -- From Algorithms.m2
+        FilterMaxPairs
 }, protect)
 
 --------------------------------------------------------------------------------
@@ -115,8 +162,9 @@ composeOIMaps(OIMap, OIMap) := (f, g) -> (
     -- Return the composition if it already exists
     if compCache#?(f, g) then return compCache#(f, g);
 
+    -- Compute the composition
     L := for i in source g list f g i;
-    ret := new OIMap from {targWidth => f.targWidth, img => L};
+    ret := makeOIMap(f.targWidth, L);
 
     -- Store the composition
     compCache#(f, g) = ret;
@@ -157,14 +205,14 @@ makePolynomialOIAlgebra(Ring, ZZ, Symbol) := opts -> (K, c, x) -> (
 
 -- Lookup table for linearFromRowCol
 orderTable := new HashTable from {
-    ColUpRowUp => (P, n, i, j) -> P.varRows * (n - j + 1) - i,
-    ColUpRowDown => (P, n, i, j) -> P.varRows * (n - j) + i - 1,
-    ColDownRowUp => (P, n, i, j) -> P.varRows * j - i,
-    ColDownRowDown => (P, n, i, j) -> P.varRows * (j - 1) + i - 1,
-    RowUpColUp => (P, n, i, j) -> n * (P.varRows - i + 1) - j,
-    RowUpColDown => (P, n, i, j) -> n * (P.varRows - i) + j - 1,
-    RowDownColUp => (P, n, i, j) -> n * i - j,
-    RowDownColDown => (P, n, i, j) -> n * (i - 1) + j - 1
+    ColUpRowUp => (P, n, i, j) -> P.varRows * (n - j + 1) - i,      -- x_(i',j') < x_(i,j) if j'<j or j'=j and i'<i
+    ColUpRowDown => (P, n, i, j) -> P.varRows * (n - j) + i - 1,    -- x_(i',j') < x_(i,j) if j'<j or j'=j and i'>i
+    ColDownRowUp => (P, n, i, j) -> P.varRows * j - i,              -- x_(i',j') < x_(i,j) if j'>j or j'=j and i'<i
+    ColDownRowDown => (P, n, i, j) -> P.varRows * (j - 1) + i - 1,  -- x_(i',j') < x_(i,j) if j'>j or j'=j and i'>i
+    RowUpColUp => (P, n, i, j) -> n * (P.varRows - i + 1) - j,      -- x_(i',j') < x_(i,j) if i'<i or i'=i and j'<j
+    RowUpColDown => (P, n, i, j) -> n * (P.varRows - i) + j - 1,    -- x_(i',j') < x_(i,j) if i'<i or i'=i and j'>j
+    RowDownColUp => (P, n, i, j) -> n * i - j,                      -- x_(i',j') < x_(i,j) if i'>i or i'=i and j'<j
+    RowDownColDown => (P, n, i, j) -> n * (i - 1) + j - 1           -- x_(i',j') < x_(i,j) if i'>i or i'=i and j'>j
 }
 
 -- Linearize the variables based on P.varOrder
@@ -173,7 +221,7 @@ linearFromRowCol := (P, n, i, j) -> (orderTable#(P.varOrder))(P, n, i, j)
 getAlgebraInWidth = method(TypicalValue => PolynomialRing)
 getAlgebraInWidth(PolynomialOIAlgebra, ZZ) := (P, n) -> (
     -- Return the algebra if it already exists
-    if P.algebras#?n then ( use P.algebras#n; return P.algebras#n );
+    if P.algebras#?n then return P.algebras#n;
 
     -- Generate the variables
     local ret;
@@ -182,7 +230,7 @@ getAlgebraInWidth(PolynomialOIAlgebra, ZZ) := (P, n) -> (
         for i from 1 to P.varRows do variables#(linearFromRowCol(P, n, i, j)) = P.varSym_(i, j);
 
     -- Make the algebra
-    ret = P.baseField[variables, Degrees => {#variables:1}, MonomialOrder => {Position => Down, Lex}];
+    ret = P.baseField[variables, Degrees => {#variables:1}, MonomialOrder => {Lex}];
 
     -- Store the algebra
     P.algebras#n = ret;
@@ -205,7 +253,7 @@ getInducedAlgebraMap(PolynomialOIAlgebra, OIMap) := (P, f) -> (
     src := P_m;
     targ := P_n;
     subs := flatten for j from 1 to m list
-        for i from 1 to P.varRows list src_(linearFromRowCol(P, m, i, j)) => targ_(linearFromRowCol(P, n, i, f j));
+        for i from 1 to P.varRows list src_(linearFromRowCol(P, m, i, j)) => targ_(linearFromRowCol(P, n, i, f j)); -- Permute the second index
 
     -- Make the map
     ret := map(targ, src, subs);
@@ -286,7 +334,7 @@ net VectorInWidth := f -> (
     if #oiTerms == 1 then return net oiTerms#0;
     
     str := "";
-    for i to #oiTerms - 2 do str = str|net oiTerms#i|" + "; -- WISHLIST: Make negatives look better
+    for i to #oiTerms - 2 do str = str|net oiTerms#i|" + "; -- TODO: Make negatives look better
     str = str|net oiTerms#-1;
     str
 )
@@ -294,7 +342,7 @@ net VectorInWidth := f -> (
 getFreeModuleInWidth = method(TypicalValue => ModuleInWidth)
 getFreeModuleInWidth(FreeOIModule, ZZ) := (F, n) -> (
     -- Return the module if it already exists
-    if F.modules#?n then ( use ring F.modules#n; return F.modules#n );
+    if F.modules#?n then return F.modules#n;
 
     -- Generate the degrees
     alg := getAlgebraInWidth(F.polyOIAlg, n);
@@ -329,6 +377,9 @@ getFreeModuleInWidth(FreeOIModule, ZZ) := (F, n) -> (
 -- Shorthand for getFreeModuleInWidth
 FreeOIModule _ ZZ := (F, n) -> getFreeModuleInWidth(F, n)
 
+-- Use a ModuleInWidth
+use ModuleInWidth := M -> use getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.Width)
+
 widthOfElement = method(TypicalValue => ZZ)
 widthOfElement VectorInWidth := f -> (class f).Width
 
@@ -359,13 +410,14 @@ makeOITerm(RingElement, BasisIndex) := (elt, b) -> new OITerm from {ringElement 
 
 net OITerm := f -> (
     local ringElementNet;
-    if #terms f.ringElement == 1 or #terms f.ringElement == 0 then ringElementNet = net f.ringElement
+    if #terms f.ringElement == 0 then return net 0;
+    if #terms f.ringElement == 1 then ringElementNet = net f.ringElement
     else ringElementNet = "("|net f.ringElement|")";
     ringElementNet | net f.basisIndex.freeOIMod.basisSym_(toString f.basisIndex.oiMap.targWidth, toString f.basisIndex.oiMap.img, f.basisIndex.idx)
 )
 
-isZero OITerm := f -> f.ringElement === 0_(class f.ringElement)
 isZero RingElement := f -> f === 0_(class f)
+isZero OITerm := f -> isZero f.ringElement
 
 -- Cache for storing OITerm comparisons
 oiTermCompCache = new MutableHashTable
@@ -404,8 +456,8 @@ OITerm ? OITerm := (f, g) -> (
 
                 if not loimimf === loimimg then ret = loimimf ? loimimg
                 else if not idxf === idxg then ( if idxf < idxg then ret = symbol > else ret = symbol < )
-                else if not oiMapf.targWidth === oiMapg.targWidth then ret = oiMapf.targWidth ? oiMapg.targWidth
-                else if not oiMapf.img === oiMapg.img then ret = oiMapf.img ? oiMapg.img
+                else if not oiMapf.targWidth === oiMapg.targWidth then ( if oiMapf.targWidth < oiMapg.targWidth then ret = symbol > else ret = symbol < )
+                else if not oiMapf.img === oiMapg.img then ( if oiMapf.img < oiMapg.img then ret = symbol > else ret = symbol < )
                 else ret = symbol ==
             )
             else error "monomial order not supported"
@@ -1338,12 +1390,12 @@ installBasisElements(F, 1);
 installBasisElements(F, 2);
 installBasisElements(F, 3);
 
-F_1; f = x_(1,1)^3*e_(1,{1}, 1);
-F_2; h = x_(1,2)^2*e_(2, {2}, 1) + x_(1,1)*x_(1,2)*e_(2, {2}, 1);
+use F_1; f = x_(1,1)^3*e_(1,{1}, 1);
+use F_2; h = x_(1,2)^2*e_(2, {2}, 1) + x_(1,1)*x_(1,2)*e_(2, {2}, 1);
 B = oiGB {f, h};
 
-F_2; elt1 = x_(1,2)*x_(1,1)^2*e_(2,{2},1);
-F_3; elt2 = (-x_(1,3)*x_(1,2)+x_(1,3)*x_(1,1))*e_(3,{3},1);
+use F_2; elt1 = x_(1,2)*x_(1,1)^2*e_(2,{2},1);
+use F_3; elt2 = (-x_(1,3)*x_(1,2)+x_(1,3)*x_(1,1))*e_(3,{3},1);
 
 checkB = apply(B, makeMonic);
 checkSet = apply({f, h, elt1, elt2}, makeMonic);
@@ -1357,8 +1409,8 @@ F = makeFreeOIModule(P, e, {1});
 installBasisElements(F, 1);
 installBasisElements(F, 2);
 
-F_1; b1 = x_(1,1)^3*e_(1,{1},1);
-F_2; b2 = x_(1,1)^2*e_(2,{1},1); b3 = x_(1,2)^2*e_(2,{2},1); b4 = x_(1,1)*x_(1,2)*e_(2,{2},1);
+use F_1; b1 = x_(1,1)^3*e_(1,{1},1);
+use F_2; b2 = x_(1,1)^2*e_(2,{1},1); b3 = x_(1,2)^2*e_(2,{2},1); b4 = x_(1,1)*x_(1,2)*e_(2,{2},1);
 B = oiGB {b1, b2, b3, b4};
 C = oiSyz(B, d);
 
@@ -1366,20 +1418,20 @@ G = freeOIModuleFromElement C#0;
 installBasisElements(G, 2);
 installBasisElements(G, 3);
 
-G_2;
+use G_2;
 width2stuff = {
 d_(2,{1},1)-x_(1,1)*d_(2,{1,2},2),
 x_(1,1)*d_(2,{1,2},3)-x_(1,2)*d_(2,{1,2},4),
 d_(2,{2},1)-x_(1,2)*d_(2,{1,2},3)
 };
 
-G_3;
+use G_3;
 width3stuff = {
--d_(3,{1,3},2)+d_(3,{1,2},2),
+d_(3,{1,3},2)-d_(3,{1,2},2),
 d_(3,{2,3},2)-d_(3,{1,2},3),
-x_(1,1)*d_(3,{2,3},4)-x_(1,2)*d_(3,{1,3},4),
+x_(1,1)*d_(3,{2,3},3)-x_(1,3)*d_(3,{1,3},4),
 -d_(3,{2,3},3)+d_(3,{1,3},3),
-x_(1,2)*d_(3,{1,3},3)-x_(1,3)*d_(3,{2,3},4)
+x_(1,2)*d_(3,{1,3},4)-x_(1,1)*d_(3,{2,3},4)
 };
 
 checkC = apply(C, makeMonic);
@@ -1387,18 +1439,20 @@ checkSet = apply(join(width2stuff, width3stuff), makeMonic);
 assert(set checkC === set checkSet)
 ///
 
--- Test 2: Compute length 1 resolution
+-- Test 2: Compute length 2 resolution
 TEST ///
 P = makePolynomialOIAlgebra(QQ,1,x);
 F = makeFreeOIModule(P, e, {1});
 installBasisElements(F, 1);
 installBasisElements(F, 2);
-F_1; b1 = x_(1,1)*e_(1,{1},1); b2 = x_(1,1)^2*e_(1,{1},1);
-F_2; b3 = x_(1,2)*e_(2,{1},1);
-C = oiRes({b1, b2, b3}, 1, MinimalOIGB => false);
+use F_1; b1 = x_(1,1)*e_(1,{1},1); b2 = x_(1,1)^2*e_(1,{1},1);
+use F_2; b3 = x_(1,2)*e_(2,{1},1);
+C = oiRes({b1, b2, b3}, 2, MinimalOIGB => false);
 assert isComplex C;
-assert(getGenWidths C_1 == {2,2,3,3});
-assert(getDegShifts C_1 == {-2,-3,-2,-2})
+assert(getGenWidths C_1 == {2,3});
+assert(getDegShifts C_1 == {-2,-2});
+assert(getGenWidths C_2 == {3, 3, 3, 3, 4, 4, 4, 4, 4, 4});
+assert(getDegShifts C_2 == {-3, -3, -4, -4, -3, -3, -3, -3, -3, -3})
 ///
 
 end
@@ -1409,8 +1463,8 @@ P = makePolynomialOIAlgebra(QQ,1,x);
 F = makeFreeOIModule(P, e, {1});
 installBasisElements(F, 1);
 installBasisElements(F, 2);
-F_1; b1 = x_(1,1)^3*e_(1,{1},1);
-F_2; b2 = x_(1,1)^2*e_(2,{1},1); b3 = x_(1,2)^2*e_(2,{2},1); b4 = x_(1,1)*x_(1,2)*e_(2,{2},1);
+use F_1; b1 = x_(1,1)^3*e_(1,{1},1);
+use F_2; b2 = x_(1,1)^2*e_(2,{1},1); b3 = x_(1,2)^2*e_(2,{2},1); b4 = x_(1,1)*x_(1,2)*e_(2,{2},1);
 B = oiGB({b1, b2, b3, b4}, Verbose => true)
 C = oiSyz(B, d, Verbose => true)
 isOIGB C
@@ -1421,8 +1475,8 @@ P = makePolynomialOIAlgebra(QQ,1,x);
 F = makeFreeOIModule(P, e, {1});
 installBasisElements(F, 1);
 installBasisElements(F, 2);
-F_1; f = x_(1,1)^3*e_(1,{1}, 1);
-F_2; h = x_(1,2)^2*e_(2, {2}, 1) + x_(1,1)*x_(1,2)*e_(2, {2}, 1);
+use F_1; f = x_(1,1)^3*e_(1,{1}, 1);
+use F_2; h = x_(1,2)^2*e_(2, {2}, 1) + x_(1,1)*x_(1,2)*e_(2, {2}, 1);
 time B = oiGB({f, h}, Verbose => true)
 time C = oiSyz(B, d, Verbose => true)
 time isOIGB C
@@ -1432,19 +1486,20 @@ P = makePolynomialOIAlgebra(QQ,1,x);
 F = makeFreeOIModule(P, e, {1,1,2});
 installBasisElements(F, 1);
 installBasisElements(F, 2);
-F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(1,1)*e_(1,{1},2);
-F_2; b2 = x_(1,1)*e_(2,{2},2) + x_(1,2)*e_(2,{1,2},3); b3 = e_(2,{2},1);
+use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(1,1)*e_(1,{1},2);
+use F_2; b2 = x_(1,1)*e_(2,{2},2) + x_(1,2)*e_(2,{1,2},3); b3 = e_(2,{2},1);
 time C = oiRes({b1,b2,b3}, 3, Verbose => true)
 
+-- GB Example 0
 restart
 load "OIGroebnerBases.m2"
 P = makePolynomialOIAlgebra(QQ,2,x);
 F = makeFreeOIModule(P, e, {1,1,2});
 installBasisElements(F, 1);
 installBasisElements(F, 2);
-F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
-F_2; b2 = x_(1,1)*e_(2,{2},2) + x_(2,2)*e_(2,{1,2},3); b3 = x_(2,1)*e_(2,{2},1);
-time C = oiRes({b1,b2,b3}, 3, Verbose => true)
+use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
+use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+ x_(2,1)*x_(2,2)*e_(2,{1,2},3);
+time B = oiGB({b1, b2}, Verbose => true)
 
 -- GB Example
 restart
@@ -1453,8 +1508,8 @@ P = makePolynomialOIAlgebra(QQ,2,x);
 F = makeFreeOIModule(P, e, {0});
 installBasisElements(F, 1);
 installBasisElements(F, 2);
-F_1; b1 = x_(1,1)*e_(1,{},1) + x_(2,1)^2*e_(1,{},1);
-F_2; b2 = (x_(1,2)*x_(1,1)+x_(2,2))*e_(2,{},1);
+use F_1; b1 = x_(1,1)*e_(1,{},1) + x_(2,1)^2*e_(1,{},1);
+use F_2; b2 = (x_(1,2)*x_(1,1)+x_(2,2))*e_(2,{},1);
 time B = oiGB({b1,b2}, Verbose => true, Strategy => 2)
 
 -- Res Example
@@ -1464,24 +1519,23 @@ P = makePolynomialOIAlgebra(QQ,2,x);
 F = makeFreeOIModule(P, e, {0});
 installBasisElements(F, 1);
 installBasisElements(F, 2);
-F_1; b1 = x_(1,1)*e_(1,{},1);
-F_2; b2 = x_(2,1)*e_(2,{},1); b3 = x_(2,2)*e_(2,{},1);
-time C = oiRes({b1}, 8, Verbose => true)
+use F_1; b1 = x_(1,1)*e_(1,{},1);
+use F_2; b2 = x_(2,1)*e_(2,{},1); b3 = x_(2,2)*e_(2,{},1);
+time C = oiRes({b1}, 2, Verbose => true)
 
 load "OIGroebnerBases.m2"
 P = makePolynomialOIAlgebra(QQ,1,x);
-F = makeFreeOIModule(P, e, {1});
+F = makeFreeOIModule(P, e, {1,2});
 installBasisElements(F, 1);
 installBasisElements(F, 2);
 installBasisElements(F, 3);
 installBasisElements(F, 4);
 
 -- Res example 1
-F_1; b1 = x_(1,1)*e_(1,{1},1);
-F_2; b2 = x_(1,1)*e_(2,{2},1); b3 = x_(1,2)*e_(2,{1},1);
-C = oiRes({b1, b2, b3}, 1, Verbose => true)
+use F_3; b1 = x_(1,1)*x_(1,2)*e_(3,{2},1); b2 = (x_(1,1)+x_(1,2))*e_(3,{1,3},2)+x_(1,3)*e_(3,{2,3},2);
+C = oiRes({b1,b2}, 3, Verbose => true)
 
 -- Res example 2
-F_1; b1 = x_(1,1)*e_(1,{1},1);
-F_2; b2 = x_(1,2)*e_(2,{1},1);
-C = oiRes({b1,b2}, 0, Verbose => true)
+use F_1; b1 = x_(1,1)*e_(1,{1},1);
+use F_2; b2 = x_(1,1)*e_(2,{2},1); b3 = x_(1,2)*e_(2,{1},1);
+C = oiRes({b1, b2, b3}, 1, Verbose => true)

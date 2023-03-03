@@ -12,13 +12,14 @@ makeOITerm(RingElement, BasisIndex) := (elt, b) -> new OITerm from {ringElement 
 
 net OITerm := f -> (
     local ringElementNet;
-    if #terms f.ringElement == 1 or #terms f.ringElement == 0 then ringElementNet = net f.ringElement
+    if #terms f.ringElement == 0 then return net 0;
+    if #terms f.ringElement == 1 then ringElementNet = net f.ringElement
     else ringElementNet = "("|net f.ringElement|")";
     ringElementNet | net f.basisIndex.freeOIMod.basisSym_(toString f.basisIndex.oiMap.targWidth, toString f.basisIndex.oiMap.img, f.basisIndex.idx)
 )
 
-isZero OITerm := f -> f.ringElement === 0_(class f.ringElement)
 isZero RingElement := f -> f === 0_(class f)
+isZero OITerm := f -> isZero f.ringElement
 
 -- Cache for storing OITerm comparisons
 oiTermCompCache = new MutableHashTable
@@ -57,8 +58,8 @@ OITerm ? OITerm := (f, g) -> (
 
                 if not loimimf === loimimg then ret = loimimf ? loimimg
                 else if not idxf === idxg then ( if idxf < idxg then ret = symbol > else ret = symbol < )
-                else if not oiMapf.targWidth === oiMapg.targWidth then ret = oiMapf.targWidth ? oiMapg.targWidth
-                else if not oiMapf.img === oiMapg.img then ret = oiMapf.img ? oiMapg.img
+                else if not oiMapf.targWidth === oiMapg.targWidth then ( if oiMapf.targWidth < oiMapg.targWidth then ret = symbol > else ret = symbol < )
+                else if not oiMapf.img === oiMapg.img then ( if oiMapf.img < oiMapg.img then ret = symbol > else ret = symbol < )
                 else ret = symbol ==
             )
             else error "monomial order not supported"
