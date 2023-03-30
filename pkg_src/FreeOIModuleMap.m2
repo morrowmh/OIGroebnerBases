@@ -13,22 +13,13 @@ makeFreeOIModuleMap(FreeOIModule, FreeOIModule, List) := (G, F, L) -> new FreeOI
 
 isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod
 
--- Cache for storing FreeOIModuleMap images
-freeOIModMapCache = new MutableHashTable
-
 -- Apply a FreeOIModuleMap to a List of OITerms
 applyFreeOIModuleMap = method(TypicalValue => VectorInWidth)
 applyFreeOIModuleMap(FreeOIModuleMap, List) := (f, oiTerms) -> (
     if #oiTerms == 0 then error "cannot apply FreeOIModuleMap to an empty list";
 
-    -- Return the image if it already exists
-    if freeOIModMapCache#?(f, oiTerms) then return freeOIModMapCache#(f, oiTerms);
-
     -- Handle the zero map case
-    if isZero f then (
-        targWidth := (oiTerms#0).basisIndex.oiMap.targWidth;
-        return 0_(getFreeModuleInWidth(f.targMod, targWidth))
-    );
+    if isZero f then return 0_(getFreeModuleInWidth(f.targMod, (oiTerms#0).basisIndex.oiMap.targWidth));
 
     -- Generate the new terms
     newTerms := for oiTerm in oiTerms list (
@@ -41,12 +32,7 @@ applyFreeOIModuleMap(FreeOIModuleMap, List) := (f, oiTerms) -> (
     );
 
     -- Sum the terms up
-    ret := sum newTerms;
-
-    -- Store the image
-    freeOIModMapCache#(f, oiTerms) = ret;
-
-    ret
+    sum newTerms
 )
 
 -- Apply a FreeOIModuleMap to a List of VectorInWidths
@@ -58,10 +44,7 @@ FreeOIModuleMap VectorInWidth := (f, v) -> (
     if not source f === freeOIMod then error "element does not belong to the required FreeOIModule";
 
     -- Handle the zero map and zero vector cases
-    if isZero f or isZero v then (
-        Width := widthOfElement v;
-        return 0_(getFreeModuleInWidth(f.targMod, Width))
-    );
+    if isZero f or isZero v then return 0_(getFreeModuleInWidth(f.targMod, widthOfElement v));
 
     oiTerms := getOITermsFromVector v;
     applyFreeOIModuleMap(f, oiTerms)

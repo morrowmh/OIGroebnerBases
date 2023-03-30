@@ -1,14 +1,8 @@
--- Cache for storing division algorithm results
-oiPolyDivCache = new MutableHashTable
-
 -- Compute a remainder of a VectorInWidth modulo a List of VectorInWidths
 -- Returns a HashTable of the form {quo => VectorInWidth, rem => VectorInWidth, triples => List} where triples is a List describing how the quotient is constructed
 oiPolyDiv = method(TypicalValue => HashTable)
 oiPolyDiv(VectorInWidth, List) := (f, L) -> (
     if #L == 0 then error "expected a nonempty List";
-
-    -- Return the result if it already exists
-    if oiPolyDivCache#?(f, L) then return oiPolyDivCache#(f, L);
 
     if isZero f then return new HashTable from {quo => f, rem => f, triples => {}};
 
@@ -41,26 +35,15 @@ oiPolyDiv(VectorInWidth, List) := (f, L) -> (
         if not divisionOccurred then break
     );
 
-    ret := new HashTable from {rem => rem0, quo => quo0, triples => new List from triples0};
-
-    -- Store the result
-    oiPolyDivCache#(f, L) = ret;
-
-    ret
+    new HashTable from {rem => rem0, quo => quo0, triples => new List from triples0}
 )
 
 -- User-exposed division algorithm
 VectorInWidth // List := (f, L) -> {(oiPolyDiv(f, L)).quo, (oiPolyDiv(f, L)).rem}
 
--- Cache for storing S-polynomials
-spolyCache = new MutableHashTable
-
 -- Compute the S-polynomial of two VectorInWidths
 spoly = method(TypicalValue => VectorInWidth)
 spoly(VectorInWidth, VectorInWidth) := (f, g) -> (
-    -- Return the S-polynomial if it already exists
-    if spolyCache#?(f, g) then return spolyCache#(f, g);
-
     Widthf := widthOfElement f;
     Widthg := widthOfElement g;
     if not Widthf == Widthg then error "vectors must belong to the same width";
@@ -76,26 +59,15 @@ spoly(VectorInWidth, VectorInWidth) := (f, g) -> (
     loitg := leadOITerm g;
     lcmfg := lcm(makeMonic loitf, makeMonic loitg);
     if isZero lcmfg then return 0_freeMod;
-    ret := (lcmfg.ringElement // loitf.ringElement)*f - (lcmfg.ringElement // loitg.ringElement)*g;
-
-    -- Store the S-polynomial
-    spolyCache#(f, g) = ret;
-
-    ret
+    (lcmfg.ringElement // loitf.ringElement)*f - (lcmfg.ringElement // loitg.ringElement)*g
 )
-
--- Cache for storing OI-pairs
-oiPairsCache = new MutableHashTable
 
 -- Compute the critical pairs for a List L
 -- Returns a List of Lists of the form {VectorInWidth, VectorInWidth, OIMap, OIMap, ZZ, ZZ}
 -- The first two VectorInWidths are the actual OI-pair. Then the OI-maps used to make them, and the indices of the elements of L used
-oiPairs = method(TypicalValue => List, Options => {FilterMaxPairs => false, Verbose => false})
+oiPairs = method(TypicalValue => List, Options => {Verbose => false})
 oiPairs List := opts -> L -> (
     if #L == 0 then error "Expected a nonempty List";
-
-    -- Return the pairs if they already exist
-    if oiPairsCache#?L then return oiPairsCache#L;
 
     ret := new MutableList;
     l := 0;
@@ -116,7 +88,6 @@ oiPairs List := opts -> L -> (
             searchMin := max(Widthf, Widthg);
             searchMax := Widthf + Widthg;
             for i to searchMax - searchMin do (
-                if opts.FilterMaxPairs and i == 0 then continue; -- S-pairs with i = 0 will have a remainder of zero
                 k := searchMax - i;
                 oiMapsFromf := getOIMaps(Widthf, k);
 
@@ -142,12 +113,7 @@ oiPairs List := opts -> L -> (
         )
     );
 
-    ret = toList ret;
-
-    -- Store the pairs
-    oiPairsCache#L = ret;
-    
-    ret
+    toList ret
 )
 
 -- Cache for storing OI-Groebner bases
@@ -162,7 +128,6 @@ oiGB List := opts -> L -> (
     if oiGBCache#?(L, opts.Strategy, opts.MinimalOIGB) then return oiGBCache#(L, opts.Strategy, opts.MinimalOIGB);
 
     if #L == 0 then error "expected a nonempty List";
-    if #L == 1 then return L;
     
     ret := new MutableList from L;
     encountered := new MutableList;
@@ -175,7 +140,7 @@ oiGB List := opts -> L -> (
         retTmp := toList ret;
         addedThisPhase := 0;
 
-        oipairs := oiPairs(retTmp, Verbose => opts.Verbose, FilterMaxPairs => true);
+        oipairs := oiPairs(retTmp, Verbose => opts.Verbose);
         for i to #oipairs - 1 do (
             s := spoly(oipairs#i#0, oipairs#i#1);
 
@@ -249,11 +214,10 @@ minimizeOIGB List := opts -> L -> (
 isOIGB = method(TypicalValue => Boolean, Options => {Verbose => false})
 isOIGB List := opts -> L -> (
     if #L == 0 then error "expected a nonempty List";
-    if #L == 1 then return true;
 
     encountered := new MutableList;
     encIndex := 0;
-    oipairs := oiPairs(L, Verbose => opts.Verbose, FilterMaxPairs => true);
+    oipairs := oiPairs(L, Verbose => opts.Verbose);
     for i to #oipairs - 1 do (
         if opts.Verbose then (
             print("On critical pair "|toString(i + 1)|" out of "|toString(#oipairs));

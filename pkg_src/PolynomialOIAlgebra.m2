@@ -53,12 +53,10 @@ getAlgebraInWidth(PolynomialOIAlgebra, ZZ) := (P, n) -> (
         for i from 1 to P.varRows do variables#(linearFromRowCol(P, n, i, j)) = P.varSym_(i, j);
 
     -- Make the algebra
-    ret = P.baseField[variables, Degrees => {#variables:1}, MonomialOrder => {Lex}];
+    ret = P.baseField[toList variables, Degrees => {#variables:1}, MonomialOrder => {Lex}];
 
     -- Store the algebra
-    P.algebras#n = ret;
-
-    ret
+    P.algebras#n = ret
 )
 
 -- Shorthand for getAlgebraInWidth
@@ -82,7 +80,5 @@ getInducedAlgebraMap(PolynomialOIAlgebra, OIMap) := (P, f) -> (
     ret := map(targ, src, subs);
 
     -- Store the map
-    P.maps#f = ret;
-
-    ret
+    P.maps#f = ret
 )

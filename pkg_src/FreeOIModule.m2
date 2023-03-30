@@ -69,8 +69,7 @@ net VectorInWidth := f -> (
     
     str := "";
     for i to #oiTerms - 2 do str = str|net oiTerms#i|" + "; -- TODO: Make negatives look better
-    str = str|net oiTerms#-1;
-    str
+    str = str|net oiTerms#-1
 )
 
 getFreeModuleInWidth = method(TypicalValue => ModuleInWidth)
@@ -103,16 +102,14 @@ getFreeModuleInWidth(FreeOIModule, ZZ) := (F, n) -> (
     ret := new ModuleInWidth of VectorInWidth from retHash;
 
     -- Store the module
-    F.modules#n = ret;
-
-    ret
+    F.modules#n = ret
 )
 
 -- Shorthand for getFreeModuleInWidth
 FreeOIModule _ ZZ := (F, n) -> getFreeModuleInWidth(F, n)
 
 -- Use a ModuleInWidth
-use ModuleInWidth := M -> use getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.Width)
+use ModuleInWidth := M -> ( use getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.Width); M )
 
 widthOfElement = method(TypicalValue => ZZ)
 widthOfElement VectorInWidth := f -> (class f).Width

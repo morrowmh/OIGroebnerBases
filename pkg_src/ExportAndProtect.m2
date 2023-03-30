@@ -80,8 +80,5 @@ scan({
 
     -- Options
         -- From Terms.m2
-        CombineLikeTerms,
-        
-        -- From Algorithms.m2
-        FilterMaxPairs
+        CombineLikeTerms
 }, protect)
