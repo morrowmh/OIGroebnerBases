@@ -66,18 +66,40 @@ load "Tests.m2"
 
 end
 
-restart
-load "OIGroebnerBases.m2"
-P = makePolynomialOIAlgebra(QQ,2,x);
-F = makeFreeOIModule(P, e, {0});
-installBasisElements(F, 3);
-b = (x_(1,1)*x_(2,3)-x_(1,3)*x_(2,1))*e_(3,{},1);
-time C = oiRes({b}, 3, Verbose => true)
-
+-- 2x2 minor example
 restart
 load "OIGroebnerBases.m2"
 P = makePolynomialOIAlgebra(QQ,2,x);
 F = makeFreeOIModule(P, e, {0});
 installBasisElements(F, 2);
 b = (x_(1,1)*x_(2,2)-x_(1,2)*x_(2,1))*e_(2,{},1);
-time D = oiRes({b}, 3, Verbose => true)
+time C = oiRes({b}, 3, Verbose => true)
+
+-- Free module example
+restart
+load "OIGroebnerBases.m2"
+P = makePolynomialOIAlgebra(QQ,2,x);
+F = makeFreeOIModule(P, e, {1,1,2});
+installBasisElements(F, 1);
+installBasisElements(F, 2);
+use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
+use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
+time C = oiRes({b1,b2}, 2, Verbose => true)
+
+-- Single quadratic in width 3
+restart
+load "OIGroebnerBases.m2"
+P = makePolynomialOIAlgebra(QQ,2,x);
+F = makeFreeOIModule(P, e, {1,2});
+installBasisElements(F, 3);
+b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
+time C = oiRes({b}, 4, Verbose => true) -- 5 is possible, but takes a long time
+
+-- Single quadratic in width 2
+restart
+load "OIGroebnerBases.m2"
+P = makePolynomialOIAlgebra(QQ,2,x);
+F = makeFreeOIModule(P, e, {1,1});
+installBasisElements(F, 2);
+b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+time C = oiRes({b}, 5, Verbose => true)

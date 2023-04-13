@@ -9,8 +9,7 @@ oiPolyDiv(VectorInWidth, List) := (f, L) -> (
     -- Division algorithm
     quo0 := 0_(class f);
     rem0 := f;
-    triples0 := new MutableList;
-    tripIndex := 0;
+    triples0 := new List;
     while true do (
         divisionOccurred := false;
         for i to #L - 1 do (
@@ -22,8 +21,7 @@ oiPolyDiv(VectorInWidth, List) := (f, L) -> (
             modMap := getInducedModuleMap(freeOIModuleFromElement f, div.oiMap);
             q := modMap elt;
             quo0 = quo0 + div.quo * q;
-            triples0#tripIndex = {div.quo, div.oiMap, i};
-            tripIndex = tripIndex + 1;
+            triples0 = append(triples0, {div.quo, div.oiMap, i});
 
             rem0 = rem0 - div.quo * q;
 
@@ -35,7 +33,7 @@ oiPolyDiv(VectorInWidth, List) := (f, L) -> (
         if not divisionOccurred then break
     );
 
-    new HashTable from {rem => rem0, quo => quo0, triples => new List from triples0}
+    new HashTable from {rem => rem0, quo => quo0, triples => triples0}
 )
 
 -- User-exposed division algorithm
@@ -69,8 +67,7 @@ oiPairs = method(TypicalValue => List, Options => {Verbose => false})
 oiPairs List := opts -> L -> (
     if #L == 0 then error "Expected a nonempty List";
 
-    ret := new MutableList;
-    l := 0;
+    ret := new List;
     for fIdx to #L - 1 do (
         f := L#fIdx;
         if isZero f then continue;
@@ -106,14 +103,14 @@ oiPairs List := opts -> L -> (
                         modMapFromg := getInducedModuleMap(freeOIModuleFromElement g, oiMapFromg);
 
                         candidate := {modMapFromf f, modMapFromg g, oiMapFromf, oiMapFromg, fIdx, gIdx};
-                        if not member(candidate, toList ret) then ( ret#l = candidate; l = l + 1 ) -- Avoid duplicates
+                        if not member(candidate, ret) then ret = append(ret, candidate) -- Avoid duplicates
                     )
                 )
             )
         )
     );
 
-    toList ret
+    ret
 )
 
 -- Cache for storing OI-Groebner bases
@@ -129,24 +126,21 @@ oiGB List := opts -> L -> (
 
     if #L == 0 then error "expected a nonempty List";
     
-    ret := new MutableList from L;
-    encountered := new MutableList;
+    ret := new List from L;
+    encountered := new List;
     addedTotal := 0;
-    encIndex := 0;
-    retIndex := #ret;
     
     -- Enter the main loop: terminates by an equivariant Noetherianity argument
     while true do (
-        retTmp := toList ret;
+        retTmp := ret;
         addedThisPhase := 0;
 
         oipairs := oiPairs(retTmp, Verbose => opts.Verbose);
         for i to #oipairs - 1 do (
             s := spoly(oipairs#i#0, oipairs#i#1);
 
-            if isZero s or member(s, toList encountered) then continue; -- Skip zero and redundant S-polynomials
-            encountered#encIndex = s;
-            encIndex = encIndex + 1;
+            if isZero s or member(s, encountered) then continue; -- Skip zero and redundant S-polynomials
+            encountered = append(encountered, s);
 
             if opts.Verbose then (
                 print("On critical pair "|toString(i + 1)|" out of "|toString(#oipairs));
@@ -154,11 +148,10 @@ oiGB List := opts -> L -> (
                 print("Elements added total: "|toString addedTotal)
             );
 
-            rem := (oiPolyDiv(s, toList ret)).rem;
-            if not isZero rem and not member(rem, toList ret) then (
+            rem := (oiPolyDiv(s, ret)).rem;
+            if not isZero rem and not member(rem, ret) then (
                 if opts.Verbose then print("Found nonzero remainder: "|net rem);
-                ret#retIndex = rem;
-                retIndex = retIndex + 1;
+                ret = append(ret, rem);
 
                 addedThisPhase = addedThisPhase + 1;
                 addedTotal = addedTotal + 1;
@@ -167,15 +160,15 @@ oiGB List := opts -> L -> (
             )
         );
 
-        if toList ret === retTmp then break -- No new elements were added so we're done by the OI-Buchberger's Criterion
+        if ret === retTmp then break -- No new elements were added so we're done by the OI-Buchberger's Criterion
     );
 
     -- Minimize the basis
     local finalRet;
     if opts.MinimalOIGB then (
         if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
-        finalRet = minimizeOIGB(toList ret, Verbose => opts.Verbose)
-    ) else finalRet = toList ret;
+        finalRet = minimizeOIGB(ret, Verbose => opts.Verbose)
+    ) else finalRet = ret;
 
     -- Store the basis
     oiGBCache#(L, opts.Strategy, opts.MinimalOIGB) = finalRet;
@@ -188,20 +181,25 @@ minimizeOIGB = method(TypicalValue => List, Options => {Verbose => false})
 minimizeOIGB List := opts -> L -> (
     if opts.Verbose then print "Computing minimal OIGB...";
 
-    currentBasis := L;
+    nonRedundantElements := new List;
+    currentBasis := toList set L; -- Remove duplicate elements
     while true do (
         redundantFound := false;
 
         for p in currentBasis do (
+            if member(p, nonRedundantElements) then continue; -- Skip elements already verified to be non-redundant
+
             minusp := toList((set currentBasis) - set {p});
-            for elt in minusp do if not isZero (oiTermDiv(leadOITerm p, leadOITerm elt)).quo then (
+            loitp := leadOITerm p;
+            for elt in minusp do if not isZero (oiTermDiv(loitp, leadOITerm elt)).quo then (
                 if opts.Verbose then print("Found redundant element: "|net p);
                 redundantFound = true;
                 currentBasis = minusp;
                 break
             );
 
-            if redundantFound then break
+            if redundantFound then break;
+            nonRedundantElements = append(nonRedundantElements, p)
         );
 
         if not redundantFound then break
@@ -215,8 +213,7 @@ isOIGB = method(TypicalValue => Boolean, Options => {Verbose => false})
 isOIGB List := opts -> L -> (
     if #L == 0 then error "expected a nonempty List";
 
-    encountered := new MutableList;
-    encIndex := 0;
+    encountered := new List;
     oipairs := oiPairs(L, Verbose => opts.Verbose);
     for i to #oipairs - 1 do (
         if opts.Verbose then (
@@ -225,10 +222,9 @@ isOIGB List := opts -> L -> (
         );
 
         s := spoly(oipairs#i#0, oipairs#i#1);
-        if isZero s or member(s, toList encountered) then continue;
+        if isZero s or member(s, encountered) then continue;
+        encountered = append(encountered, s);
 
-        encountered#encIndex = s;
-        encIndex = encIndex + 1;
         rem := (oiPolyDiv(s, L)).rem;
         if not isZero rem then (if opts.Verbose then print("Found nonzero remainder: "|net rem); return false) -- If L were a GB, then every element would have a unique remainder of zero
     );
@@ -252,8 +248,7 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
     widths := for elt in L list widthOfElement elt;
     G := makeFreeOIModule(freeOIMod.polyOIAlg, d, widths, DegreeShifts => flatten shifts, MonomialOrder => L);
 
-    ret := new MutableList;
-    retIndex := 0;
+    ret := new List;
     oipairs := oiPairs(L, Verbose => opts.Verbose);
     if opts.Verbose then print "Iterating through critical pairs...";
     i := 0;
@@ -288,17 +283,16 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
         
         if isZero syzygy then continue; -- Skip trivial syzygies
 
-        ret#retIndex = syzygy;
-        if opts.Verbose then print("Generated syzygy: "|net ret#retIndex);
-        retIndex = retIndex + 1
+        ret = append(ret, syzygy);
+        if opts.Verbose then print("Generated syzygy: "|net syzygy)
     );
 
     -- Minimize the basis
     local finalRet;
     if opts.MinimalOIGB then (
         if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
-        finalRet = minimizeOIGB(toList ret, Verbose => opts.Verbose)
-    ) else finalRet = toList ret; 
+        finalRet = minimizeOIGB(ret, Verbose => opts.Verbose)
+    ) else finalRet = ret; 
 
     -- Store the GB
     oiSyzCache#(L, d, opts.MinimalOIGB) = finalRet;

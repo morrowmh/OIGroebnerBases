@@ -55,7 +55,10 @@ export {
         "DegreeShifts",
     
         -- From Algorithms.m2
-        "MinimalOIGB"
+        "MinimalOIGB",
+
+        -- From OIResolution.m2
+        "NoTopMinimalOIGB"
 }
 
 scan({
