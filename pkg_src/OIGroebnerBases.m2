@@ -103,3 +103,14 @@ F = makeFreeOIModule(P, e, {1,1});
 installBasisElements(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
 time C = oiRes({b}, 5, Verbose => true)
+
+-- Small Gröbner basis example
+restart
+load "OIGroebnerBases.m2"
+P = makePolynomialOIAlgebra(QQ,2,x);
+F = makeFreeOIModule(P, e, {1,1,2});
+installBasisElements(F, 1);
+installBasisElements(F, 2);
+use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
+use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
+time B = oiGB({b1,b2}, Verbose => true)
