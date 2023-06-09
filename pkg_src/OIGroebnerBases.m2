@@ -4,9 +4,9 @@
 -- COMMENT: This package was made using Macaulay2-Package-Template, available here: https://github.com/morrowmh/Macaulay2-Package-Template
 
 newPackage("OIGroebnerBases",
-    Headline => "Computation in OI-modules over Noetherian polynomial OI-algebras",
+    Headline => "OI-modules over Noetherian polynomial OI-algebras",
     Version => "1.0.0",
-    Date => "April 4, 2022", -- Project birthday
+    Date => "TBD",
     Keywords => { "Commutative Algebra" },
     Authors => {
         { Name => "Michael Morrow", HomePage => "https://michaelhmorrow.com", Email => "michaelhmorrow98@gmail.com" }
@@ -29,7 +29,11 @@ load "ExportAndProtect.m2"
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+load "OIMap.m2"
 
+load "PolynomialOIAlgebra.m2"
+
+load "FreeOIModule.m2"
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
