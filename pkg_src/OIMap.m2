@@ -19,7 +19,7 @@ makeOIMap := (n, L) -> new OIMap from {targWidth => n, img => L}
 getOIMaps := (m, n) -> (
     if n < m then return {};
 
-    sets := subsets(toList(1..n), m);
+    sets := subsets((1..n), m);
     for i to #sets - 1 list makeOIMap(n, sets#i)
 )
 

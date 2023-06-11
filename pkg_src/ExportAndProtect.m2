@@ -25,7 +25,7 @@ scan({
         varRows, varSym, baseField, varOrder, algebras, maps,
 
         -- From FreeOIModule.m2
-        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules,
+        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, wid, freeOIMod,
     
     -- Options
         -- From PolynomialOIAlgebra.m2

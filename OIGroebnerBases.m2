@@ -55,7 +55,7 @@ scan({
         varRows, varSym, baseField, varOrder, algebras, maps,
 
         -- From FreeOIModule.m2
-        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules,
+        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, wid, freeOIMod,
     
     -- Options
         -- From PolynomialOIAlgebra.m2
@@ -92,7 +92,7 @@ makeOIMap := (n, L) -> new OIMap from {targWidth => n, img => L}
 getOIMaps := (m, n) -> (
     if n < m then return {};
 
-    sets := subsets(toList(1..n), m);
+    sets := subsets((1..n), m);
     for i to #sets - 1 list makeOIMap(n, sets#i)
 )
 
@@ -124,6 +124,8 @@ makePolynomialOIAlgebra(ZZ, Symbol, Ring) := opts -> (c, x, K) -> (
         ColUpRowUp, ColUpRowDown, ColDownRowUp, ColDownRowDown,
         RowUpColUp, RowUpColDown, RowDownColUp, RowDownColDown
     }) then error "invalid variable order";
+
+        getOIMaps(10, 20);
 
     new PolynomialOIAlgebra from {
             varRows => c,
@@ -230,6 +232,9 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
         modules => new MutableHashTable,
         maps => new MutableHashTable}
 )
+
+-- Should be of the form {wid => ZZ, freeOIMod => FreeOIModule}
+ModuleInWidth := new Type of HashTable
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------

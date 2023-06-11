@@ -36,3 +36,6 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
         modules => new MutableHashTable,
         maps => new MutableHashTable}
 )
+
+-- Should be of the form {wid => ZZ, rawMod => Module, freeOIMod => FreeOIModule}
+ModuleInWidth := new Type of HashTable
