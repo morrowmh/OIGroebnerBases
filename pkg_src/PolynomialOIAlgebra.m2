@@ -1,12 +1,12 @@
 -- Should be of the form {varRows => ZZ, varSym => Symbol, baseField => Ring, varOrder => Symbol, algebras => MutableHashTable, maps => MutableHashTable}
 PolynomialOIAlgebra = new Type of HashTable
 
-toString PolynomialOIAlgebra := P -> "("|toString P.varRows|", "|toString P.varSym|", "|toString P.baseField|", "|toString P.varOrder|")"
+toString PolynomialOIAlgebra := P -> "(" | toString P.varRows | ", " | toString P.varSym | ", " | toString P.baseField | ", " | toString P.varOrder | ")"
 
-net PolynomialOIAlgebra := P -> "Number of variable rows: "|net P.varRows ||
-    "Variable symbol: "|net P.varSym ||
-    "Base field: "|net P.baseField ||
-    "Variable order: "|net P.varOrder
+net PolynomialOIAlgebra := P -> "Number of variable rows: " | net P.varRows ||
+    "Variable symbol: " | net P.varSym ||
+    "Base field: " | net P.baseField ||
+    "Variable order: " | net P.varOrder
 
 makePolynomialOIAlgebra = method(TypicalValue => PolynomialOIAlgebra, Options => {VariableOrder => RowUpColUp})
 makePolynomialOIAlgebra(ZZ, Symbol, Ring) := opts -> (c, x, K) -> (
@@ -62,7 +62,7 @@ getAlgebraInWidth := (P, n) -> (
     P.algebras#n = ret
 )
 
-PolynomialOIAlgebra _ ZZ := (P, n) -> getAlgebraInWidth(P, n);
+PolynomialOIAlgebra _ ZZ := (P, n) -> getAlgebraInWidth(P, n)
 
 -- Get the algebra map induced by an OI-map
 -- Args: P = PolynomialOIAlgebra, f = OIMap

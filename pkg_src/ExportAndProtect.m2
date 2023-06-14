@@ -2,6 +2,9 @@ export {
     -- Types
         -- From PolynomialOIAlgebra.m2
         "PolynomialOIAlgebra",
+
+        -- From FreeOIModule.m2
+        "ModuleInWidth", "VectorInWidth",
     
     -- Keys
         -- From PolynomialOIAlgebra.m2
@@ -13,7 +16,7 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule"
+        "makeFreeOIModule", "installBasisElements"
 }
 
 scan({
@@ -25,7 +28,7 @@ scan({
         varRows, varSym, baseField, varOrder, algebras, maps,
 
         -- From FreeOIModule.m2
-        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, wid, freeOIMod,
+        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, wid, rawMod, freeOIMod,
     
     -- Options
         -- From PolynomialOIAlgebra.m2

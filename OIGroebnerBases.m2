@@ -32,6 +32,9 @@ export {
     -- Types
         -- From PolynomialOIAlgebra.m2
         "PolynomialOIAlgebra",
+
+        -- From FreeOIModule.m2
+        "ModuleInWidth", "VectorInWidth",
     
     -- Keys
         -- From PolynomialOIAlgebra.m2
@@ -43,7 +46,7 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule"
+        "makeFreeOIModule", "installBasisElements"
 }
 
 scan({
@@ -55,7 +58,7 @@ scan({
         varRows, varSym, baseField, varOrder, algebras, maps,
 
         -- From FreeOIModule.m2
-        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, wid, freeOIMod,
+        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, wid, rawMod, freeOIMod,
     
     -- Options
         -- From PolynomialOIAlgebra.m2
@@ -74,7 +77,7 @@ scan({
 -- Should be of the form {targWidth => ZZ, img => List}
 OIMap = new Type of HashTable
 
-net OIMap := f -> "Source: ["|net(#f.img)|"] Target: ["|net f.targWidth|"]" || "Image: "|net f.img
+net OIMap := f -> "Source: [" | net(#f.img) | "] Target: [" | net f.targWidth | "]" || "Image: " | net f.img
 
 source OIMap := f -> toList(1..#f.img)
 target OIMap := f -> toList(1..f.targWidth)
@@ -92,13 +95,13 @@ makeOIMap := (n, L) -> new OIMap from {targWidth => n, img => L}
 getOIMaps := (m, n) -> (
     if n < m then return {};
 
-    sets := subsets((1..n), m);
+    sets := subsets(1..n, m);
     for i to #sets - 1 list makeOIMap(n, sets#i)
 )
 
 -- Given OI-maps f and g, compute f(g)
 OIMap OIMap := (f, g) -> (
-    if not source f === target g then error("cannot compose "|net f|" with "|net g);
+    if not source f === target g then error("cannot compose " | net f | " with " | net g);
 
     -- Compute the composition
     L := for i in source g list f g i;
@@ -108,12 +111,12 @@ OIMap OIMap := (f, g) -> (
 -- Should be of the form {varRows => ZZ, varSym => Symbol, baseField => Ring, varOrder => Symbol, algebras => MutableHashTable, maps => MutableHashTable}
 PolynomialOIAlgebra = new Type of HashTable
 
-toString PolynomialOIAlgebra := P -> "("|toString P.varRows|", "|toString P.varSym|", "|toString P.baseField|", "|toString P.varOrder|")"
+toString PolynomialOIAlgebra := P -> "(" | toString P.varRows | ", " | toString P.varSym | ", " | toString P.baseField | ", " | toString P.varOrder | ")"
 
-net PolynomialOIAlgebra := P -> "Number of variable rows: "|net P.varRows ||
-    "Variable symbol: "|net P.varSym ||
-    "Base field: "|net P.baseField ||
-    "Variable order: "|net P.varOrder
+net PolynomialOIAlgebra := P -> "Number of variable rows: " | net P.varRows ||
+    "Variable symbol: " | net P.varSym ||
+    "Base field: " | net P.baseField ||
+    "Variable order: " | net P.varOrder
 
 makePolynomialOIAlgebra = method(TypicalValue => PolynomialOIAlgebra, Options => {VariableOrder => RowUpColUp})
 makePolynomialOIAlgebra(ZZ, Symbol, Ring) := opts -> (c, x, K) -> (
@@ -124,8 +127,6 @@ makePolynomialOIAlgebra(ZZ, Symbol, Ring) := opts -> (c, x, K) -> (
         ColUpRowUp, ColUpRowDown, ColDownRowUp, ColDownRowDown,
         RowUpColUp, RowUpColDown, RowDownColUp, RowDownColDown
     }) then error "invalid variable order";
-
-        getOIMaps(10, 20);
 
     new PolynomialOIAlgebra from {
             varRows => c,
@@ -171,7 +172,7 @@ getAlgebraInWidth := (P, n) -> (
     P.algebras#n = ret
 )
 
-PolynomialOIAlgebra _ ZZ := (P, n) -> getAlgebraInWidth(P, n);
+PolynomialOIAlgebra _ ZZ := (P, n) -> getAlgebraInWidth(P, n)
 
 -- Get the algebra map induced by an OI-map
 -- Args: P = PolynomialOIAlgebra, f = OIMap
@@ -197,18 +198,18 @@ getInducedAlgebraMap := (P, f) -> (
 -- Should be of the form {basisSym => Symbol, genWidths => List, degShifts => List, polyOIAlg => PolynomialOIAlgebra, monOrder => Thing, modules => MutableHashTable, maps => MutableHashTable}
 FreeOIModule = new Type of HashTable
 
-toString FreeOIModule := F -> "("|toString F.basisSym|", "|toString F.genWidths|", "|toString F.degShifts|")"
+toString FreeOIModule := F -> "(" | toString F.basisSym | ", " | toString F.genWidths | ", " | toString F.degShifts | ")"
 
 net FreeOIModule := F -> (
     monOrderNet := if F.monOrder === Lex then net Lex
     else if instance(F.monOrder, List) then "Schreyer"
     else error "invalid monomial order";
 
-    "Basis symbol: "|net F.basisSym ||
-    "Generator widths: "|net F.genWidths ||
-    "Degree shifts: "|net F.degShifts ||
-    "Polynomial OI-algebra: "|toString F.polyOIAlg ||
-    "Monomial order: "|monOrderNet
+    "Basis symbol: " | net F.basisSym ||
+    "Generator widths: " | net F.genWidths ||
+    "Degree shifts: " | net F.degShifts ||
+    "Polynomial OI-algebra: " | toString F.polyOIAlg ||
+    "Monomial order: " | monOrderNet
 )
 
 makeFreeOIModule = method(TypicalValue => FreeOIModule, Options => {DegreeShifts => null, MonomialOrder => Lex})
@@ -218,10 +219,10 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
     else error "invalid DegreeShifts option";
 
     -- Validate the monomial order
---    if not opts.MonomialOrder === Lex and not (
-  --      instance(opts.MonomialOrder, List) and 
-    --    W === apply(opts.MonomialOrder, widthOfElement) and 
-      --  #set apply(opts.MonomialOrder, freeOIModuleFromElement) == 1) then error "invalid monomial order";
+    -- if not opts.MonomialOrder === Lex and not (
+    -- instance(opts.MonomialOrder, List) and 
+    -- W === apply(opts.MonomialOrder, widthOfElement) and 
+    --  #set apply(opts.MonomialOrder, freeOIModuleFromElement) == 1) then error "invalid monomial order";
 
     new FreeOIModule from {
         basisSym => e,
@@ -233,8 +234,46 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
         maps => new MutableHashTable}
 )
 
--- Should be of the form {wid => ZZ, freeOIMod => FreeOIModule}
-ModuleInWidth := new Type of HashTable
+-- Should be of the form {wid => ZZ, rawMod => Module, freeOIMod => FreeOIModule}
+ModuleInWidth = new Type of HashTable
+
+net ModuleInWidth := M -> net M.rawMod | " in width " | net M.wid
+
+-- Get the module of F in width n
+-- Args: F = FreeOIModule, n = ZZ
+getModuleInWidth := (F, n) -> (
+    -- Return the module if it already exists
+    if F.modules#?n then return F.modules#n;
+
+    -- Generate the degrees
+    alg := getAlgebraInWidth(F.polyOIAlg, n);
+    degList := for i to #F.genWidths - 1 list binomial(n, F.genWidths#i) : F.degShifts#i;
+
+    -- Generate and store the module
+    F.modules#n = new ModuleInWidth of VectorInWidth from new HashTable from {
+        wid => n,
+        rawMod => alg^degList,
+        freeOIMod => F
+    }
+)
+
+FreeOIModule _ ZZ := (F, n) -> getModuleInWidth(F, n)
+
+use ModuleInWidth := M -> (use getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.wid); M)
+
+VectorInWidth = new Type of BasicList
+
+-- Install the basis elements in a given width
+installBasisElements = method();
+installBasisElements(FreeOIModule, ZZ) := (F, n) -> (
+    M := getModuleInWidth(F, n);
+
+    for i to #F.genWidths - 1 do
+        for oiMap in getOIMaps(F.genWidths#i, n) do (
+            v := new VectorInWidth from {F.basisSym_(oiMap.targWidth, oiMap.img, i + 1)};
+            F.basisSym_(oiMap.targWidth, oiMap.img, i + 1) <- new M from v
+        )
+)
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
