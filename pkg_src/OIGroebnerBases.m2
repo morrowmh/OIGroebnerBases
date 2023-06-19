@@ -61,3 +61,7 @@ load "Documentation.m2"
 load "Tests.m2"
 
 end
+
+P = makePolynomialOIAlgebra(1, x, QQ);
+F = makeFreeOIModule(e, {1,2}, P);
+installBasisElements(F, 2);
