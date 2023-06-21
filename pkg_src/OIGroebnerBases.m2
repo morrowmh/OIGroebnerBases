@@ -65,3 +65,4 @@ end
 P = makePolynomialOIAlgebra(1, x, QQ);
 F = makeFreeOIModule(e, {1,2}, P);
 installBasisElements(F, 2);
+f = 3*x_(1,2)*e_(2,{1,2},2)-(5*x_(1,2)+4*x_(1,1)^2)*e_(2,{1},1)
