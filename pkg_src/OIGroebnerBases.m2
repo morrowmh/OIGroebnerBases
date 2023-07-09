@@ -42,6 +42,14 @@ load "PolynomialOIAlgebra.m2"
 
 load "FreeOIModule.m2"
 
+load "Division.m2"
+
+load "SPolynomial.m2"
+
+load "OIPair.m2"
+
+load "OIGB.m2"
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 -- DOCUMENTATION ---------------------------------------------------------------
@@ -62,7 +70,20 @@ load "Tests.m2"
 
 end
 
-P = makePolynomialOIAlgebra(1, x, QQ);
-F = makeFreeOIModule(e, {1,2}, P);
+-- Small GB example
+restart
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,1,2}, P);
+installBasisElements(F, 1);
 installBasisElements(F, 2);
-f = 3*x_(1,2)*e_(2,{1,2},2)-(5*x_(1,2)+4*x_(1,1)^2)*e_(2,{1},1)
+use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
+use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
+time B = oiGB({b1, b2}, Verbose => true)
+
+-- Single quadratic in width 3
+restart
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,2}, P);
+installBasisElements(F, 3);
+b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
+time B = oiGB({b}, Verbose => true)

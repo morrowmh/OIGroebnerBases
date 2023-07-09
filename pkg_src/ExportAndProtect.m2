@@ -16,7 +16,10 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "installBasisElements"
+        "makeFreeOIModule", "installBasisElements",
+
+        -- From OIGB.m2
+        "oiGB", "minimizeOIGB"
 }
 
 scan({
@@ -28,12 +31,21 @@ scan({
         varRows, varSym, baseField, varOrder, algebras, maps,
 
         -- From FreeOIModule.m2
-        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, wid, rawMod, freeOIMod,
+        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, wid, rawMod, freeOIMod, vec, oiMap, viw, term,
+
+        -- From Division.m2
+        quo, rem, divTuples,
+
+        -- From OIPair.m2
+        map0, vec0, im0, map1, vec1, im1,
     
     -- Options
         -- From PolynomialOIAlgebra.m2
         VariableOrder,
 
         -- From FreeOIModule.m2
-        DegreeShifts
+        DegreeShifts,
+
+        -- From OIGB.m2
+        CacheSPolynomials, MinimizeOIGB
 }, protect)

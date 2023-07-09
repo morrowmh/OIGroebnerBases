@@ -70,7 +70,7 @@ getInducedAlgebraMap := (P, f) -> (
     -- Return the map if it already exists
     if P.maps#?f then return P.maps#f;
 
-    -- Generate the assignment
+    -- Generate the assignments
     m := #f.img;
     n := f.targWidth;
     src := P_m;
