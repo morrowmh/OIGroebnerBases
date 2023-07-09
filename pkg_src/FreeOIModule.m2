@@ -112,6 +112,12 @@ isZero := v -> (
     ret
 )
 
+-- Get the degree of a VectorInWidth
+-- Args: v = VectorInWidth
+degree VectorInWidth := v -> (
+    -- TODO: finish this
+)
+
 -- Get the terms of a VectorInWidth
 terms VectorInWidth := v -> flatten for key in keys v.vec list
     for term in terms v.vec#key list makeSingle(class v, keys v.vec, key, term)
