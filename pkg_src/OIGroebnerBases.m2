@@ -73,7 +73,7 @@ end
 -- Small GB example
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
-F = makeFreeOIModule(e, {1,1,2}, DegreeShifts => {1, -1, 0}, P);
+F = makeFreeOIModule(e, {1,1,2}, DegreeShifts => {1, 1, 1}, P);
 installBasisElements(F, 1);
 installBasisElements(F, 2);
 use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);

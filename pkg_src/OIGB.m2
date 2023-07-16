@@ -58,13 +58,14 @@ oiGB List := opts -> L -> (
     oiGBCache#(L, opts.MinimizeOIGB) = ret
 )
 
--- Minimize an OI-Groebner basis in the sense of lt(p) not in <lt(L - {p})> for all p in L
+-- Minimize an OI-Groebner basis in the sense of monic and lt(p) not in <lt(L - {p})> for all p in L
 minimizeOIGB = method(TypicalValue => List, Options => {Verbose => false})
 minimizeOIGB List := opts -> L -> (
     if opts.Verbose then print "Computing minimal OIGB...";
 
     nonRedundant := new List;
-    currentBasis := toList set L;
+    currentBasis := apply(toList set L, makeMonic);
+
     while true do (
         redundantFound := false;
 

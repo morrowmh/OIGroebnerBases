@@ -49,7 +49,7 @@ export {
         "makeFreeOIModule", "installBasisElements",
 
         -- From OIGB.m2
-        "oiGB", "minimizeOIGB",
+        "oiGB", "minimizeOIGB", "isOIGB",
     
     -- Options
         -- From FreeOIModule.m2
@@ -443,6 +443,11 @@ isHomogeneous VectorInWidth := v -> (
     #set apply(terms v, degree) === 1
 )
 
+-- Make a VectorInWidth monic
+-- Args: v = VectorInWidth
+-- Comment: assumes v is nonzero
+makeMonic := v -> (1 / leadCoefficient v) * v
+
 -- Helper type for net VectorInWidth
 -- Comment: should be a List with one element, namely a VectorInWidth
 TermInWidth = new Type of List
@@ -694,13 +699,14 @@ oiGB List := opts -> L -> (
     oiGBCache#(L, opts.MinimizeOIGB) = ret
 )
 
--- Minimize an OI-Groebner basis in the sense of lt(p) not in <lt(L - {p})> for all p in L
+-- Minimize an OI-Groebner basis in the sense of monic and lt(p) not in <lt(L - {p})> for all p in L
 minimizeOIGB = method(TypicalValue => List, Options => {Verbose => false})
 minimizeOIGB List := opts -> L -> (
     if opts.Verbose then print "Computing minimal OIGB...";
 
     nonRedundant := new List;
-    currentBasis := toList set L;
+    currentBasis := apply(toList set L, makeMonic);
+
     while true do (
         redundantFound := false;
 
@@ -777,7 +783,7 @@ end
 -- Small GB example
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
-F = makeFreeOIModule(e, {1,1,2}, DegreeShifts => {1, -1, 0}, P);
+F = makeFreeOIModule(e, {1,1,2}, DegreeShifts => {1, 1, 1}, P);
 installBasisElements(F, 1);
 installBasisElements(F, 2);
 use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);

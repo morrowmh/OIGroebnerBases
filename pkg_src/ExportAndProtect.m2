@@ -19,7 +19,7 @@ export {
         "makeFreeOIModule", "installBasisElements",
 
         -- From OIGB.m2
-        "oiGB", "minimizeOIGB",
+        "oiGB", "minimizeOIGB", "isOIGB",
     
     -- Options
         -- From FreeOIModule.m2

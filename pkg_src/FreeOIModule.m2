@@ -243,6 +243,11 @@ isHomogeneous VectorInWidth := v -> (
     #set apply(terms v, degree) === 1
 )
 
+-- Make a VectorInWidth monic
+-- Args: v = VectorInWidth
+-- Comment: assumes v is nonzero
+makeMonic := v -> (1 / leadCoefficient v) * v
+
 -- Helper type for net VectorInWidth
 -- Comment: should be a List with one element, namely a VectorInWidth
 TermInWidth = new Type of List
