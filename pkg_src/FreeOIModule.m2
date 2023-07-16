@@ -18,7 +18,7 @@ net FreeOIModule := F -> (
 makeFreeOIModule = method(TypicalValue => FreeOIModule, Options => {DegreeShifts => null, MonomialOrder => Lex})
 makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
     shifts := if opts.DegreeShifts === null then toList(#W : 0)
-    else if instance(opts.DegreeShifts, List) then opts.DegreeShifts
+    else if instance(opts.DegreeShifts, List) and #opts.DegreeShifts === #W then opts.DegreeShifts
     else error "invalid DegreeShifts option";
 
     -- Validate the monomial order
@@ -41,7 +41,8 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
 -- Should be of the form {wid => ZZ, rawMod => Module, freeOIMod => FreeOIModule}
 ModuleInWidth = new Type of HashTable
 
-net ModuleInWidth := M -> net M.rawMod | " in width " | net M.wid
+net ModuleInWidth := M -> net M.rawMod | " in width " | net M.wid |
+    if not set M.freeOIMod.degShifts === set {0} and not zero M.rawMod then ", degrees " | net flatten degrees M.rawMod else ""
 
 -- Get the module of F in width n
 -- Args: F = FreeOIModule, n = ZZ
@@ -159,7 +160,10 @@ compareTerms := (v, w) -> (
 -- Get the lead term of a VectorInWidth
 leadTerm VectorInWidth := v -> (
     if isZero v then return v;
+
     T := terms v;
+    if #T === 1 then return T#0;
+
     largest := T#0;
     for term in T do if compareTerms(largest, term) === symbol < then largest = term;
     largest
@@ -218,6 +222,27 @@ Number * VectorInWidth := (n, v) -> (
 -- Subtraction method for VectorInWidth
 VectorInWidth - VectorInWidth := (v, w) -> v + -w
 
+-- Get the degree of a VectorInWidth
+degree VectorInWidth := v -> (
+    if isZero v then return 0;
+
+    lt := leadTerm v;
+    elt := lt.vec#(lt.cache);
+    degElt := (degree elt)#0;
+
+    basisIdx := lt.cache#1;
+    degBasisElt := -(class v).freeOIMod.degShifts#(basisIdx - 1);
+
+    degElt + degBasisElt
+)
+
+-- Check if a VectorInWidth is homogeneous
+isHomogeneous VectorInWidth := v -> (
+    if isZero v then return true;
+
+    #set apply(terms v, degree) === 1
+)
+
 -- Helper type for net VectorInWidth
 -- Comment: should be a List with one element, namely a VectorInWidth
 TermInWidth = new Type of List
@@ -240,7 +265,7 @@ net VectorInWidth := v -> (
         coeff := leadCoefficient elt;
         basisNet := net fmod.basisSym_(toString (term.cache#0).targWidth, toString (term.cache#0).img, toString term.cache#1);
 
-        N = N | if coeff > 0 then net " + " | net elt | basisNet else net " - " | net(-elt) | basisNet
+        N = N | if coeff > 0 then " + " | net elt | basisNet else " - " | net(-elt) | basisNet
     );
 
     N

@@ -19,7 +19,11 @@ export {
         "makeFreeOIModule", "installBasisElements",
 
         -- From OIGB.m2
-        "oiGB", "minimizeOIGB"
+        "oiGB", "minimizeOIGB",
+    
+    -- Options
+        -- From FreeOIModule.m2
+        "DegreeShifts"
 }
 
 scan({
@@ -42,9 +46,6 @@ scan({
     -- Options
         -- From PolynomialOIAlgebra.m2
         VariableOrder,
-
-        -- From FreeOIModule.m2
-        DegreeShifts,
 
         -- From OIGB.m2
         CacheSPolynomials, MinimizeOIGB
