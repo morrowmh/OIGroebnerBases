@@ -1,4 +1,4 @@
--- Should be of the form {basisSym => Symbol, genWidths => List, degShifts => List, polyOIAlg => PolynomialOIAlgebra, monOrder => Thing, modules => MutableHashTable, maps => MutableHashTable}
+-- Should be of the form {basisSym => Symbol, genWidths => List, degShifts => List, polyOIAlg => PolynomialOIAlgebra, monOrder => Thing, modules => MutableHashTable, maps => MutableHashTable, basisKeys => MutableHashTable}
 FreeOIModule = new Type of HashTable
 
 toString FreeOIModule := F -> "(" | toString F.basisSym | ", " | toString F.genWidths | ", " | toString F.degShifts | ")"
@@ -34,7 +34,8 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
         polyOIAlg => P,
         monOrder => opts.MonomialOrder,
         modules => new MutableHashTable,
-        maps => new MutableHashTable}
+        maps => new MutableHashTable,
+        basisKeys => new MutableHashTable}
 )
 
 -- Should be of the form {wid => ZZ, rawMod => Module, freeOIMod => FreeOIModule}
@@ -67,31 +68,33 @@ use ModuleInWidth := M -> ( use getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.wid);
 -- Should be of the form {cache => Thing, vec => HashTable}
 VectorInWidth = new Type of HashTable
 
--- Get the basis element keys in a given width
+-- Get the basis keys in a given width
 -- Args: F = FreeOIModule, n = ZZ
-getBasisKeys := (F, n) -> flatten for i to #F.genWidths - 1 list
-    for oiMap in getOIMaps(F.genWidths#i, n) list (oiMap, i + 1)
+getBasisKeys := (F, n) -> (
+    -- Return the basis keys if they already exist
+    if F.basisKeys#?n then return F.basisKeys#n;
+
+    -- Store the basis keys
+    F.basisKeys#n = flatten for i to #F.genWidths - 1 list
+        for oiMap in getOIMaps(F.genWidths#i, n) list (oiMap, i + 1)
+)
 
 -- Make a VectorInWidth
 -- Args: M = ModuleInWidth, c = Thing, a = List
 makeVectorInWidth := (M, c, a) -> new M from new VectorInWidth from {cache => c, vec => hashTable a}
 
--- Make a VectorInWidth with a single basis element
--- Args: M = ModuleInWidth, K = List, key = Sequence, elt = RingElement
+-- Make a VectorInWidth with a single basis key
+-- Args: M = ModuleInWidth, key = Sequence, elt = RingElement
 -- Comment: sets cache => key
-makeSingle := (M, K, key, elt) -> (
-    assignments := for keyj in K list
-        keyj => if key === keyj then elt else 0_(class elt);
-    
+makeSingle := (M, key, elt) -> (
+    assignments := for keyj in getBasisKeys(M.freeOIMod, M.wid) list keyj => if key === keyj then elt else 0_(class elt);
     makeVectorInWidth(M, key, assignments)
 )
 
 -- Make the zero VectorInWidth
 -- Args: M = ModuleInWidth
 makeZero := M -> (
-    K := getBasisKeys(M.freeOIMod, M.wid);
-    assignments := for key in K list key => 0_(getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.wid));
-
+    assignments := for key in getBasisKeys(M.freeOIMod, M.wid) list key => 0_(getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.wid));
     makeVectorInWidth(M, null, assignments)
 )
 
@@ -101,7 +104,7 @@ installBasisElements(FreeOIModule, ZZ) := (F, n) -> (
     M := getModuleInWidth(F, n);
     K := getBasisKeys(F, n);
     
-    for key in K do F.basisSym_((key#0).targWidth, (key#0).img, key#1) <- makeSingle(M, K, key, 1_(getAlgebraInWidth(F.polyOIAlg, n)))
+    for key in K do F.basisSym_((key#0).targWidth, (key#0).img, key#1) <- makeSingle(M, key, 1_(getAlgebraInWidth(F.polyOIAlg, n)))
 )
 
 -- Check if a VectorInWidth is zero
@@ -112,88 +115,68 @@ isZero := v -> (
     ret
 )
 
--- Get the degree of a VectorInWidth
--- Args: v = VectorInWidth
-degree VectorInWidth := v -> (
-    -- TODO: finish this
-)
-
 -- Get the terms of a VectorInWidth
 terms VectorInWidth := v -> flatten for key in keys v.vec list
-    for term in terms v.vec#key list makeSingle(class v, keys v.vec, key, term)
-
--- Get the combined terms of a VectorInWidth
-combinedTerms := v -> for key in keys v.vec list (
-    if zero v.vec#key then continue
-    else makeSingle(class v, keys v.vec, key, v.vec#key)
-)
+    for term in terms v.vec#key list makeSingle(class v, key, term)
 
 -- Cache for storing VectorInWidth term comparisons
 compCache = new MutableHashTable
 
--- Comparison function for VectorInWidth terms
--- Args: elt0 = RingElement, key0 = Sequence, elt1 = RingElement, key1 = Sequence, v = VectorInWidth
--- Comment: compares elt0 on key0 to elt1 on key1 in v
-compareTerms := (elt0, key0, elt1, key1, v) -> (
+-- Comparison method for VectorInWidth terms
+-- Args: v = VectorInWidth, w = VectorInWidth
+-- Comment: expects v and w to have cache => key
+compareTerms := (v, w) -> (
     -- Return the comparison if it already exists
-    if compCache#?(elt0, key0, elt1, key1, v) then return compCache#(elt0, key0, elt1, key1, v);
+    if compCache#?(v, w) then return compCache#(v, w);
 
     -- Generate the comparison
-    oiMap0 := key0#0;
-    oiMap1 := key1#0;
-    img0 := oiMap0.img;
-    img1 := oiMap1.img;
-    idx0 := key0#1;
-    idx1 := key1#1;
-    fmod := (class v).freeOIMod;
+    keyv := v.cache;
+    keyw := w.cache;
+    oiMapv := keyv#0;
+    oiMapw := keyw#0;
+    idxv := keyv#1;
+    idxw := keyw#1;
+    eltv := v.vec#keyv;
+    eltw := w.vec#keyw;
 
     local ret;
-    if key0 === key1 and elt0 === elt1 then ret = symbol ==
-    else if fmod.monOrder === Lex then ( -- Lex order
-        if not idx0 === idx1 then ( if idx0 < idx1 then ret = symbol > else ret = symbol < )
-        else if not img0 === img1 then ret = img0 ? img1
-        else ret = elt0 ? elt1
+    if keyv === keyw and eltv === eltw then ret = symbol ==
+    else if (class v).freeOIMod.monOrder === Lex then ( -- Lex order
+        if not idxv === idxw then ( if idxv < idxw then ret = symbol > else ret = symbol < )
+        else if not oiMapv.targWidth === oiMapw.targWidth then ret = oiMapv.targWidth ? oiMapw.targWidth
+        else if not oiMapv.img === oiMapw.img then ret = oiMapv.img ? oiMapw.img
+        else ret = eltv ? eltw
     )
-    else if instance(fmod.monOrder, List) then ( -- Schreyer order
-        -- TODO: Add this
+    else if instance((class v).freeOIMod.monOrder, List) then ( -- Schreyer order
+        -- TODO: Finish this
     )
     else error "invalid monomial order";
 
     -- Store the comparison
-    compCache#(elt0, key0, elt1, key1, v) = ret
-)
-
--- Get the largest basis key and term in a VectorInWidth
--- Args: v = VectorInWidth
--- Comment: helper function for leadTerm, leadMonomial, and leadCoefficient
-largest := v -> (
-    K := keys v.vec;
-    larg := if zero v.vec#(K#0) then (K#0, v.vec#(K#0)) else (K#0, (terms v.vec#(K#0))#0);
-    for key in K do
-        for term in terms v.vec#key do
-            if zero larg#1 or compareTerms(larg#1, larg#0, term, key, v) === symbol < then
-                larg = (key, term);
-    
-    larg
+    compCache#(v, w) = ret
 )
 
 -- Get the lead term of a VectorInWidth
 leadTerm VectorInWidth := v -> (
-    larg := largest v;
-    makeSingle(class v, keys v.vec, larg#0, larg#1)
-)
-
--- Get the lead coefficient of a VectorInWidth
-leadCoefficient VectorInWidth := v -> (
-    larg := largest v;
-    leadCoefficient larg#1
+    if isZero v then return v;
+    T := terms v;
+    largest := T#0;
+    for term in T do if compareTerms(largest, term) === symbol < then largest = term;
+    largest
 )
 
 -- Get the lead monomial of a VectorInWidth
 leadMonomial VectorInWidth := v -> (
     if isZero v then error "the zero element has no lead monomial";
-    larg := largest v;
-    makeSingle(class v, keys v.vec, larg#0, leadMonomial larg#1)
+    lt := leadTerm v;
+    makeSingle(class v, lt.cache, leadMonomial lt.vec#(lt.cache))
+)
+
+-- Get the lead coefficient of a VectorInWidth
+leadCoefficient VectorInWidth := v -> (
+    if isZero v then return 0_(getAlgebraInWidth((class v).freeOIMod.polyOIAlg, (class v).wid));
+    lt := leadTerm v;
+    leadCoefficient lt.vec#(lt.cache)
 )
 
 -- Addition method for VectorInWidth
@@ -229,32 +212,38 @@ Number * VectorInWidth := (n, v) -> (
     n_(getAlgebraInWidth(cls.freeOIMod.polyOIAlg, cls.wid)) * v
 )
 
+-- Negative method for VectorInWidth
+- VectorInWidth := v -> (-1) * v
+
 -- Subtraction method for VectorInWidth
-VectorInWidth - VectorInWidth := (v, w) -> v + (-1) * w
+VectorInWidth - VectorInWidth := (v, w) -> v + -w
 
--- Net for a VectorInWidth with a single basis key
--- Args: v = VectorInWidth
--- Comment: expects v to have cache => key
-singleNet := v -> net v.vec#(v.cache) | net (class v).freeOIMod.basisSym_(toString (v.cache#0).targWidth, toString (v.cache#0).img, toString v.cache#1)
+-- Helper type for net VectorInWidth
+-- Comment: should be a List with one element, namely a VectorInWidth
+TermInWidth = new Type of List
 
--- Should be of the form {viw => VectorInWidth, term => VectorInWidth}
-VIWTerm = new Type of HashTable
-
--- Comparison method for VIWTerm objects
--- Comment: expects V.viw === W.viw
-VIWTerm ? VIWTerm := (V, W) -> compareTerms(V.term.vec#(V.term.cache), V.term.cache, W.term.vec#(W.term.cache), W.term.cache, V.viw)
+-- Comparison function for TermInWidth objects
+TermInWidth ? TermInWidth := (v, w) -> compareTerms(v#0, w#0)
 
 net VectorInWidth := v -> (
     if isZero v then return net 0;
-    termsv := terms v;
-    if #termsv === 1 then return singleNet termsv#0;
+    
+    fmod := (class v).freeOIMod;
+    sorted := flatten reverse sort for term in terms v list new TermInWidth from {term};
 
-    viwterms := for term0 in termsv list new VIWTerm from {viw => v, term => term0};
-    sorted := reverse sort viwterms;
+    firstTerm := sorted#0;
+    N := net firstTerm.vec#(firstTerm.cache) | net fmod.basisSym_(toString (firstTerm.cache#0).targWidth, toString (firstTerm.cache#0).img, toString firstTerm.cache#1);
 
-    N := net "";
-    for i to #sorted - 2 do N = N | singleNet (sorted#i).term | " + ";
-    N | singleNet (sorted#-1).term
+    for i from 1 to #sorted - 1 do (
+        term := sorted#i;
+        elt := term.vec#(term.cache);
+        coeff := leadCoefficient elt;
+        basisNet := net fmod.basisSym_(toString (term.cache#0).targWidth, toString (term.cache#0).img, toString term.cache#1);
+
+        N = N | if coeff > 0 then net " + " | net elt | basisNet else net " - " | net(-elt) | basisNet
+    );
+
+    N
 )
 
 -- Should be of the form {freeOIMod => FreeOIModule, oiMap => OIMap, img => HashTable}
@@ -272,7 +261,7 @@ getInducedModuleMap := (F, f) -> (
     H := hashTable for key in K list key => (f key#0, key#1);
 
     -- Store the map
-    F.maps#(F, f) = new InducedModuleMap from hashTable {freeOIMod => F, oiMap => f, img => H}
+    F.maps#(F, f) = new InducedModuleMap from {freeOIMod => F, oiMap => f, img => H}
 )
 
 -- Apply an InducedModuleMap to a VectorInWidth
@@ -287,7 +276,6 @@ InducedModuleMap VectorInWidth := (f, v) -> (
     if isZero v then return makeZero targMod;
 
     algMap := getInducedAlgebraMap(fmod.polyOIAlg, f.oiMap);
-    targKeys := getBasisKeys(fmod, targWidth);
 
-    sum for term in combinedTerms v list makeSingle(targMod, targKeys, f.img#(term.cache), algMap term.vec#(term.cache))
+    sum for term in terms v list makeSingle(targMod, f.img#(term.cache), algMap term.vec#(term.cache))
 )
