@@ -64,7 +64,7 @@ minimizeOIGB List := opts -> L -> (
     if opts.Verbose then print "Computing minimal OIGB...";
 
     nonRedundant := new List;
-    currentBasis := apply(toList set L, makeMonic);
+    currentBasis := apply(unique L, makeMonic);
 
     while true do (
         redundantFound := false;

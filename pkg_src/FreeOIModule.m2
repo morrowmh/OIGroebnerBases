@@ -22,10 +22,10 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
     else error "invalid DegreeShifts option";
 
     -- Validate the monomial order
-    -- if not opts.MonomialOrder === Lex and not (
-    -- instance(opts.MonomialOrder, List) and 
-    -- W === apply(opts.MonomialOrder, widthOfElement) and 
-    --  #set apply(opts.MonomialOrder, freeOIModuleFromElement) == 1) then error "invalid monomial order";
+    if not opts.MonomialOrder === Lex and not (
+        instance(opts.MonomialOrder, List) and 
+        W === apply(opts.MonomialOrder, getWidth) and 
+        #set apply(opts.MonomialOrder, getFreeOIModule) == 1) then error "invalid monomial order";
 
     new FreeOIModule from {
         basisSym => e,
@@ -37,6 +37,10 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
         maps => new MutableHashTable,
         basisKeys => new MutableHashTable}
 )
+
+-- Check if a FreeOIModule is zero
+isZero = method(TypicalValue => Boolean)
+isZero FreeOIModule := F -> F.genWidths === {}
 
 -- Should be of the form {wid => ZZ, rawMod => Module, freeOIMod => FreeOIModule}
 ModuleInWidth = new Type of HashTable
@@ -68,6 +72,14 @@ use ModuleInWidth := M -> ( use getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.wid);
 
 -- Should be of the form {cache => Thing, vec => HashTable}
 VectorInWidth = new Type of HashTable
+
+-- Get the width of a VectorInWidth
+getWidth = method(TypicalValue => ZZ)
+getWidth VectorInWidth := v -> (class v).wid
+
+-- Get the FreeOIModule of a VectorInWidth
+getFreeOIModule = method(TypicalValue => FreeOIModule)
+getFreeOIModule VectorInWidth := v -> (class v).freeOIMod
 
 -- Get the basis keys in a given width
 -- Args: F = FreeOIModule, n = ZZ
@@ -109,8 +121,7 @@ installBasisElements(FreeOIModule, ZZ) := (F, n) -> (
 )
 
 -- Check if a VectorInWidth is zero
--- Args: v = VectorInWidth
-isZero := v -> (
+isZero VectorInWidth := v -> (
     ret := true;
     for val in values v.vec do if not zero val then ( ret = false; break );
     ret
@@ -139,17 +150,27 @@ compareTerms := (v, w) -> (
     idxw := keyw#1;
     eltv := v.vec#keyv;
     eltw := w.vec#keyw;
+    fmod := (class v).freeOIMod;
+    ord := fmod.monOrder;
 
     local ret;
     if keyv === keyw and eltv === eltw then ret = symbol ==
-    else if (class v).freeOIMod.monOrder === Lex then ( -- Lex order
+    else if ord === Lex then ( -- Lex order
         if not idxv === idxw then ( if idxv < idxw then ret = symbol > else ret = symbol < )
         else if not oiMapv.targWidth === oiMapw.targWidth then ret = oiMapv.targWidth ? oiMapw.targWidth
         else if not oiMapv.img === oiMapw.img then ret = oiMapv.img ? oiMapw.img
         else ret = eltv ? eltw
     )
-    else if instance((class v).freeOIMod.monOrder, List) then ( -- Schreyer order
-        -- TODO: Finish this
+    else if instance(ord, List) then ( -- Schreyer order
+        fmodMap := new FreeOIModuleMap from {srcMod => fmod, targMod => getFreeOIModule ord#0, genImages => ord};
+        lmimgv := leadMonomial fmodMap v;
+        lmimgw := leadMonomial fmodMap w;
+
+        if not lmimgv === lmimgw then ret = compareTerms(lmimgv, lmimgw)
+        else if not idxv === idxw then ( if idxv < idxw then ret = symbol > else ret = symbol < )
+        else if not oiMapv.targWidth === oiMapw.targWidth then ( if oiMapv.targWidth < oiMapw.targWidth then ret = symbol > else ret = symbol < )
+        else if not oiMapv.img === oiMapw.img then ( if oiMapv.img < oiMapw.img then ret = symbol > else ret = symbol < )
+        else ret = symbol ==
     )
     else error "invalid monomial order";
 
@@ -263,7 +284,7 @@ net VectorInWidth := v -> (
 
     firstTerm := sorted#0;
     N := net firstTerm.vec#(firstTerm.cache) | net fmod.basisSym_(toString (firstTerm.cache#0).targWidth, toString (firstTerm.cache#0).img, toString firstTerm.cache#1);
-
+    
     for i from 1 to #sorted - 1 do (
         term := sorted#i;
         elt := term.vec#(term.cache);
@@ -295,7 +316,6 @@ getInducedModuleMap := (F, f) -> (
 )
 
 -- Apply an InducedModuleMap to a VectorInWidth
--- Args: f = InducedModuleMap, v = VectorInWidth
 -- Comment: expects v to belong to the domain of f
 InducedModuleMap VectorInWidth := (f, v) -> (
     fmod := f.freeOIMod;
@@ -308,4 +328,37 @@ InducedModuleMap VectorInWidth := (f, v) -> (
     algMap := getInducedAlgebraMap(fmod.polyOIAlg, f.oiMap);
 
     sum for term in terms v list makeSingle(targMod, f.img#(term.cache), algMap term.vec#(term.cache))
+)
+
+-- Should be of the form {srcMod => FreeOIModule, targMod => FreeOIModule, genImages => List}
+FreeOIModuleMap = new Type of HashTable
+
+net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Generator images: " | net f.genImages
+
+-- Check if a FreeOIModuleMap is zero
+isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(f.genImages, isZero) === set {true}
+
+-- Apply a FreeOIModuleMap to a VectorInWidth
+-- Comment: expects v to belong to the domain of f
+FreeOIModuleMap VectorInWidth := (f, v) -> (
+    
+    -- Handle the zero vector or zero map
+    if isZero f or isZero v then return 0_(getModuleInWidth(f.targMod, getWidth v));
+
+    sum for term in terms v list (
+        elt := term.vec#(term.cache);
+        oiMap := term.cache#0;
+        basisIdx := term.cache#1;
+        modMap := getInducedModuleMap(f.targMod, oiMap);
+        elt * modMap f.genImages#(basisIdx - 1)
+    )
+)
+
+-- Check if a FreeOIModuleMap is a graded map
+isHomogeneous FreeOIModuleMap := f -> (
+    if isZero f then return true;
+
+    for elt in f.genImages do if not isHomogeneous elt then return false;
+
+    -f.srcMod.degShifts === apply(f.genImages, degree)
 )

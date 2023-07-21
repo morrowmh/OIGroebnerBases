@@ -50,6 +50,8 @@ load "OIPair.m2"
 
 load "OIGB.m2"
 
+load "oiSyz.m2"
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 -- DOCUMENTATION ---------------------------------------------------------------
@@ -87,3 +89,13 @@ F = makeFreeOIModule(e, {1,2}, P);
 installBasisElements(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
 time B = oiGB({b}, Verbose => true)
+time C = oiSyz(B, d, Verbose => true)
+
+-- Single quadratic in width 2
+restart
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,1}, P);
+installBasisElements(F, 2);
+b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+time B = oiGB({b}, Verbose => true)
+time C = oiSyz(B, d, Verbose => true)

@@ -4,7 +4,7 @@ OIPair = new Type of HashTable
 -- Compute the critical pairs for a List of VectorInWidth objects
 -- Args: L = List, V = Boolean
 -- Comment: map0 and map1 are the OI-maps applied to vec0 and vec1 to make im0 and im1
-oiPairs := (L, V) -> toList set flatten flatten flatten flatten for fIdx to #L - 1 list (
+oiPairs := (L, V) -> unique flatten flatten flatten flatten for fIdx to #L - 1 list (
     f := L#fIdx;
     ltf := leadTerm f;
     for gIdx from fIdx to #L - 1 list (
@@ -30,14 +30,16 @@ oiPairs := (L, V) -> toList set flatten flatten flatten flatten for fIdx to #L -
                 -- Add back in the i-element subsets of oiMapFromf.img and make the pairs
                 for subset in subsets(oiMapFromf.img, i) list (
                     oiMapFromg := makeOIMap(k, sort toList(base + set subset));
+
                     if not oiMapFromf ltf.cache#0 === oiMapFromg ltg.cache#0 then continue; -- These will have lcm zero
+                    if fIdx === gIdx and oiMapFromf === oiMapFromg then continue; -- These will yield trivial S-polynomials and syzygies
 
                     if V then print("Found suitable OI-maps " | net oiMapFromf | " and " | net oiMapFromg);
 
                     modMapFromf := getInducedModuleMap(clsf.freeOIMod, oiMapFromf);
                     modMapFromg := getInducedModuleMap(clsg.freeOIMod, oiMapFromg);
 
-                    new OIPair from {map0 => oiMapFromf, vec0 => f, im0 => modMapFromf f, map1 => oiMapFromg, vec1 => g, im1 => modMapFromg g}
+                    new OIPair from {map0 => oiMapFromf, idx0 => fIdx, im0 => modMapFromf f, map1 => oiMapFromg, idx1 => gIdx, im1 => modMapFromg g}
                 )
             )
         )

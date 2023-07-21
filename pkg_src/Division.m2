@@ -42,7 +42,8 @@ polyDiv := (v, L) -> (
     done := false;
     divTuples0 := while not done list (
         divTuple := null;
-        for elt in L do (
+        for i to #L - 1 do (
+            elt := L#i;
             div := termDiv(leadTerm rem0, leadTerm elt);
             if zero div.quo then continue;
 
@@ -51,7 +52,7 @@ polyDiv := (v, L) -> (
             quo0 = quo0 + div.quo * q;
             rem0 = rem0 - div.quo * q;
 
-            divTuple = (div, elt);
+            divTuple = (div, i);
             break
         );
 

@@ -4,7 +4,7 @@ export {
         "PolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "ModuleInWidth", "VectorInWidth",
+        "ModuleInWidth", "VectorInWidth", "FreeOIModuleMap",
     
     -- Keys
         -- From PolynomialOIAlgebra.m2
@@ -16,14 +16,23 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "installBasisElements",
+        "makeFreeOIModule", "isZero", "installBasisElements", "getWidth", "getFreeOIModule",
 
         -- From OIGB.m2
         "oiGB", "minimizeOIGB", "isOIGB",
     
+        -- From oiSyz.m2
+        "oiSyz",
+    
     -- Options
+        -- From PolynomialOIAlgebra.m2
+        "VariableOrder",
+
         -- From FreeOIModule.m2
-        "DegreeShifts"
+        "DegreeShifts",
+
+        -- From OIGB.m2
+        "CacheSPolynomials", "MinimizeOIGB"
 }
 
 scan({
@@ -35,18 +44,11 @@ scan({
         varRows, varSym, baseField, varOrder, algebras, maps,
 
         -- From FreeOIModule.m2
-        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, basisKeys, wid, rawMod, freeOIMod, vec, oiMap,
+        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, basisKeys, wid, rawMod, freeOIMod, vec, oiMap, srcMod, targMod, genImages,
 
         -- From Division.m2
         quo, rem, divTuples,
 
         -- From OIPair.m2
-        map0, vec0, im0, map1, vec1, im1,
-    
-    -- Options
-        -- From PolynomialOIAlgebra.m2
-        VariableOrder,
-
-        -- From OIGB.m2
-        CacheSPolynomials, MinimizeOIGB
+        map0, idx0, im0, map1, idx1, im1
 }, protect)

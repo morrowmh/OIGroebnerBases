@@ -34,7 +34,7 @@ export {
         "PolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "ModuleInWidth", "VectorInWidth",
+        "ModuleInWidth", "VectorInWidth", "FreeOIModuleMap",
     
     -- Keys
         -- From PolynomialOIAlgebra.m2
@@ -46,14 +46,23 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "installBasisElements",
+        "makeFreeOIModule", "isZero", "installBasisElements", "getWidth", "getFreeOIModule",
 
         -- From OIGB.m2
         "oiGB", "minimizeOIGB", "isOIGB",
     
+        -- From oiSyz.m2
+        "oiSyz",
+    
     -- Options
+        -- From PolynomialOIAlgebra.m2
+        "VariableOrder",
+
         -- From FreeOIModule.m2
-        "DegreeShifts"
+        "DegreeShifts",
+
+        -- From OIGB.m2
+        "CacheSPolynomials", "MinimizeOIGB"
 }
 
 scan({
@@ -65,20 +74,13 @@ scan({
         varRows, varSym, baseField, varOrder, algebras, maps,
 
         -- From FreeOIModule.m2
-        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, basisKeys, wid, rawMod, freeOIMod, vec, oiMap,
+        basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, basisKeys, wid, rawMod, freeOIMod, vec, oiMap, srcMod, targMod, genImages,
 
         -- From Division.m2
         quo, rem, divTuples,
 
         -- From OIPair.m2
-        map0, vec0, im0, map1, vec1, im1,
-    
-    -- Options
-        -- From PolynomialOIAlgebra.m2
-        VariableOrder,
-
-        -- From OIGB.m2
-        CacheSPolynomials, MinimizeOIGB
+        map0, idx0, im0, map1, idx1, im1
 }, protect)
 
 --------------------------------------------------------------------------------
@@ -222,10 +224,10 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
     else error "invalid DegreeShifts option";
 
     -- Validate the monomial order
-    -- if not opts.MonomialOrder === Lex and not (
-    -- instance(opts.MonomialOrder, List) and 
-    -- W === apply(opts.MonomialOrder, widthOfElement) and 
-    --  #set apply(opts.MonomialOrder, freeOIModuleFromElement) == 1) then error "invalid monomial order";
+    if not opts.MonomialOrder === Lex and not (
+        instance(opts.MonomialOrder, List) and 
+        W === apply(opts.MonomialOrder, getWidth) and 
+        #set apply(opts.MonomialOrder, getFreeOIModule) == 1) then error "invalid monomial order";
 
     new FreeOIModule from {
         basisSym => e,
@@ -237,6 +239,10 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
         maps => new MutableHashTable,
         basisKeys => new MutableHashTable}
 )
+
+-- Check if a FreeOIModule is zero
+isZero = method(TypicalValue => Boolean)
+isZero FreeOIModule := F -> F.genWidths === {}
 
 -- Should be of the form {wid => ZZ, rawMod => Module, freeOIMod => FreeOIModule}
 ModuleInWidth = new Type of HashTable
@@ -268,6 +274,14 @@ use ModuleInWidth := M -> ( use getAlgebraInWidth(M.freeOIMod.polyOIAlg, M.wid);
 
 -- Should be of the form {cache => Thing, vec => HashTable}
 VectorInWidth = new Type of HashTable
+
+-- Get the width of a VectorInWidth
+getWidth = method(TypicalValue => ZZ)
+getWidth VectorInWidth := v -> (class v).wid
+
+-- Get the FreeOIModule of a VectorInWidth
+getFreeOIModule = method(TypicalValue => FreeOIModule)
+getFreeOIModule VectorInWidth := v -> (class v).freeOIMod
 
 -- Get the basis keys in a given width
 -- Args: F = FreeOIModule, n = ZZ
@@ -309,8 +323,7 @@ installBasisElements(FreeOIModule, ZZ) := (F, n) -> (
 )
 
 -- Check if a VectorInWidth is zero
--- Args: v = VectorInWidth
-isZero := v -> (
+isZero VectorInWidth := v -> (
     ret := true;
     for val in values v.vec do if not zero val then ( ret = false; break );
     ret
@@ -339,17 +352,27 @@ compareTerms := (v, w) -> (
     idxw := keyw#1;
     eltv := v.vec#keyv;
     eltw := w.vec#keyw;
+    fmod := (class v).freeOIMod;
+    ord := fmod.monOrder;
 
     local ret;
     if keyv === keyw and eltv === eltw then ret = symbol ==
-    else if (class v).freeOIMod.monOrder === Lex then ( -- Lex order
+    else if ord === Lex then ( -- Lex order
         if not idxv === idxw then ( if idxv < idxw then ret = symbol > else ret = symbol < )
         else if not oiMapv.targWidth === oiMapw.targWidth then ret = oiMapv.targWidth ? oiMapw.targWidth
         else if not oiMapv.img === oiMapw.img then ret = oiMapv.img ? oiMapw.img
         else ret = eltv ? eltw
     )
-    else if instance((class v).freeOIMod.monOrder, List) then ( -- Schreyer order
-        -- TODO: Finish this
+    else if instance(ord, List) then ( -- Schreyer order
+        fmodMap := new FreeOIModuleMap from {srcMod => fmod, targMod => getFreeOIModule ord#0, genImages => ord};
+        lmimgv := leadMonomial fmodMap v;
+        lmimgw := leadMonomial fmodMap w;
+
+        if not lmimgv === lmimgw then ret = compareTerms(lmimgv, lmimgw)
+        else if not idxv === idxw then ( if idxv < idxw then ret = symbol > else ret = symbol < )
+        else if not oiMapv.targWidth === oiMapw.targWidth then ( if oiMapv.targWidth < oiMapw.targWidth then ret = symbol > else ret = symbol < )
+        else if not oiMapv.img === oiMapw.img then ( if oiMapv.img < oiMapw.img then ret = symbol > else ret = symbol < )
+        else ret = symbol ==
     )
     else error "invalid monomial order";
 
@@ -463,7 +486,7 @@ net VectorInWidth := v -> (
 
     firstTerm := sorted#0;
     N := net firstTerm.vec#(firstTerm.cache) | net fmod.basisSym_(toString (firstTerm.cache#0).targWidth, toString (firstTerm.cache#0).img, toString firstTerm.cache#1);
-
+    
     for i from 1 to #sorted - 1 do (
         term := sorted#i;
         elt := term.vec#(term.cache);
@@ -495,7 +518,6 @@ getInducedModuleMap := (F, f) -> (
 )
 
 -- Apply an InducedModuleMap to a VectorInWidth
--- Args: f = InducedModuleMap, v = VectorInWidth
 -- Comment: expects v to belong to the domain of f
 InducedModuleMap VectorInWidth := (f, v) -> (
     fmod := f.freeOIMod;
@@ -508,6 +530,39 @@ InducedModuleMap VectorInWidth := (f, v) -> (
     algMap := getInducedAlgebraMap(fmod.polyOIAlg, f.oiMap);
 
     sum for term in terms v list makeSingle(targMod, f.img#(term.cache), algMap term.vec#(term.cache))
+)
+
+-- Should be of the form {srcMod => FreeOIModule, targMod => FreeOIModule, genImages => List}
+FreeOIModuleMap = new Type of HashTable
+
+net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Generator images: " | net f.genImages
+
+-- Check if a FreeOIModuleMap is zero
+isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(f.genImages, isZero) === set {true}
+
+-- Apply a FreeOIModuleMap to a VectorInWidth
+-- Comment: expects v to belong to the domain of f
+FreeOIModuleMap VectorInWidth := (f, v) -> (
+    
+    -- Handle the zero vector or zero map
+    if isZero f or isZero v then return 0_(getModuleInWidth(f.targMod, getWidth v));
+
+    sum for term in terms v list (
+        elt := term.vec#(term.cache);
+        oiMap := term.cache#0;
+        basisIdx := term.cache#1;
+        modMap := getInducedModuleMap(f.targMod, oiMap);
+        elt * modMap f.genImages#(basisIdx - 1)
+    )
+)
+
+-- Check if a FreeOIModuleMap is a graded map
+isHomogeneous FreeOIModuleMap := f -> (
+    if isZero f then return true;
+
+    for elt in f.genImages do if not isHomogeneous elt then return false;
+
+    -f.srcMod.degShifts === apply(f.genImages, degree)
 )
 
 -- Division function for VectorInWidth terms
@@ -554,7 +609,8 @@ polyDiv := (v, L) -> (
     done := false;
     divTuples0 := while not done list (
         divTuple := null;
-        for elt in L do (
+        for i to #L - 1 do (
+            elt := L#i;
             div := termDiv(leadTerm rem0, leadTerm elt);
             if zero div.quo then continue;
 
@@ -563,7 +619,7 @@ polyDiv := (v, L) -> (
             quo0 = quo0 + div.quo * q;
             rem0 = rem0 - div.quo * q;
 
-            divTuple = (div, elt);
+            divTuple = (div, i);
             break
         );
 
@@ -599,7 +655,7 @@ OIPair = new Type of HashTable
 -- Compute the critical pairs for a List of VectorInWidth objects
 -- Args: L = List, V = Boolean
 -- Comment: map0 and map1 are the OI-maps applied to vec0 and vec1 to make im0 and im1
-oiPairs := (L, V) -> toList set flatten flatten flatten flatten for fIdx to #L - 1 list (
+oiPairs := (L, V) -> unique flatten flatten flatten flatten for fIdx to #L - 1 list (
     f := L#fIdx;
     ltf := leadTerm f;
     for gIdx from fIdx to #L - 1 list (
@@ -625,14 +681,16 @@ oiPairs := (L, V) -> toList set flatten flatten flatten flatten for fIdx to #L -
                 -- Add back in the i-element subsets of oiMapFromf.img and make the pairs
                 for subset in subsets(oiMapFromf.img, i) list (
                     oiMapFromg := makeOIMap(k, sort toList(base + set subset));
+
                     if not oiMapFromf ltf.cache#0 === oiMapFromg ltg.cache#0 then continue; -- These will have lcm zero
+                    if fIdx === gIdx and oiMapFromf === oiMapFromg then continue; -- These will yield trivial S-polynomials and syzygies
 
                     if V then print("Found suitable OI-maps " | net oiMapFromf | " and " | net oiMapFromg);
 
                     modMapFromf := getInducedModuleMap(clsf.freeOIMod, oiMapFromf);
                     modMapFromg := getInducedModuleMap(clsg.freeOIMod, oiMapFromg);
 
-                    new OIPair from {map0 => oiMapFromf, vec0 => f, im0 => modMapFromf f, map1 => oiMapFromg, vec1 => g, im1 => modMapFromg g}
+                    new OIPair from {map0 => oiMapFromf, idx0 => fIdx, im0 => modMapFromf f, map1 => oiMapFromg, idx1 => gIdx, im1 => modMapFromg g}
                 )
             )
         )
@@ -705,7 +763,7 @@ minimizeOIGB List := opts -> L -> (
     if opts.Verbose then print "Computing minimal OIGB...";
 
     nonRedundant := new List;
-    currentBasis := apply(toList set L, makeMonic);
+    currentBasis := apply(unique L, makeMonic);
 
     while true do (
         redundantFound := false;
@@ -760,6 +818,65 @@ isOIGB List := opts -> L -> (
     true
 )
 
+-- Cache for storing Groebner bases computed with oiSyz
+oiSyzCache = new MutableHashTable
+
+-- Compute an OI-Groebner basis for the syzygy module of a List of VectorInWidth objects
+oiSyz = method(TypicalValue => List, Options => {Verbose => false, MinimizeOIGB => true})
+oiSyz(List, Symbol) := opts -> (L, d) -> (
+    if #L === 0 then error "expected a nonempty List";
+
+    -- Return the GB if it already exists
+    if oiSyzCache#?(L, d, opts.MinimizeOIGB) then return oiSyzCache#?(L, d, opts.MinimizeOIGB);
+
+    if opts.Verbose then print "Computing syzygies...";
+
+    fmod := getFreeOIModule L#0;
+    shifts := for elt in L list -degree elt;
+    widths := for elt in L list getWidth elt;
+    G := makeFreeOIModule(d, widths, fmod.polyOIAlg, DegreeShifts => shifts, MonomialOrder => L);
+
+    oipairs := oiPairs(L, opts.Verbose);
+    if opts.Verbose then print "Iterating through critical pairs...";
+    i := 0;
+    ret := for pair in oipairs list (        
+        if opts.Verbose then (
+            print("On critical pair " | toString(i + 1) | " out of " | toString(#oipairs));
+            print("Pair: (" | net pair.im0 | ", " | net pair.im1 | ")");
+            i = i + 1
+        );
+
+        ltf := leadTerm pair.im0;
+        ltg := leadTerm pair.im1;
+        ltfelt := ltf.vec#(ltf.cache);
+        ltgelt := ltg.vec#(ltg.cache);
+        lcmlmfg := lcm(leadMonomial ltfelt, leadMonomial ltgelt);
+        s := SPolynomial(pair.im0, pair.im1);
+        M := getModuleInWidth(G, getWidth s);
+        thingToSubtract := makeZero M;
+
+        -- Calculate the stuff to subtract off
+        if not isZero s then for tuple in (polyDiv(s, L)).divTuples do
+            thingToSubtract = thingToSubtract + makeSingle(M, ((tuple#0).oiMap, 1 + tuple#1), (tuple#0).quo);
+        
+        -- Make the syzygy
+        syzygy := makeSingle(M, (pair.map0, 1 + pair.idx0), lcmlmfg // ltfelt) - makeSingle(M, (pair.map1, 1 + pair.idx1), lcmlmfg // ltgelt) - thingToSubtract;
+
+        if opts.Verbose then print("Generated syzygy: " | net syzygy);
+
+        syzygy
+    );
+
+    -- Minimize the basis
+    if opts.MinimizeOIGB then (
+        if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
+        ret = minimizeOIGB(ret, Verbose => opts.Verbose)
+    );
+
+    -- Store the GB
+    oiSyzCache#(L, d, opts.MinimizeOIGB) = ret
+)
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 -- DOCUMENTATION ---------------------------------------------------------------
@@ -797,3 +914,13 @@ F = makeFreeOIModule(e, {1,2}, P);
 installBasisElements(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
 time B = oiGB({b}, Verbose => true)
+time C = oiSyz(B, d, Verbose => true)
+
+-- Single quadratic in width 2
+restart
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,1}, P);
+installBasisElements(F, 2);
+b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+time B = oiGB({b}, Verbose => true)
+time C = oiSyz(B, d, Verbose => true)
