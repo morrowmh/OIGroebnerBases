@@ -131,6 +131,21 @@ isZero VectorInWidth := v -> (
 terms VectorInWidth := v -> flatten for key in keys v.vec list
     for term in terms v.vec#key list makeSingle(class v, key, term)
 
+-- Get the combined terms of a VectorInWidth
+-- Args: v = VectorInWidth
+getSingles := v -> flatten for key in keys v.vec list
+    if zero v.vec#key then continue else makeSingle(class v, key, v.vec#key)
+
+-- Get the ith generator of a FreeOIModule
+-- Args: F = FreeOIModule, i = ZZ
+-- Comment: expects 0 <= i <= #F.genWidths - 1
+getGenerator := (F, i) -> (
+    n := F.genWidths#i;
+    M := getModuleInWidth(F, n);
+    key := (makeOIMap(n, toList(1..n)), i + 1);
+    makeSingle(M, key, 1_(getAlgebraInWidth(F.polyOIAlg, n)))
+)
+
 -- Cache for storing VectorInWidth term comparisons
 compCache = new MutableHashTable
 
@@ -140,6 +155,8 @@ compCache = new MutableHashTable
 compareTerms := (v, w) -> (
     -- Return the comparison if it already exists
     if compCache#?(v, w) then return compCache#(v, w);
+
+    print net(#keys compCache);
 
     -- Generate the comparison
     keyv := v.cache;
@@ -276,6 +293,7 @@ TermInWidth = new Type of List
 -- Comparison function for TermInWidth objects
 TermInWidth ? TermInWidth := (v, w) -> compareTerms(v#0, w#0)
 
+-- Display a VectorInWidth with terms in order
 net VectorInWidth := v -> (
     if isZero v then return net 0;
     
@@ -327,7 +345,7 @@ InducedModuleMap VectorInWidth := (f, v) -> (
 
     algMap := getInducedAlgebraMap(fmod.polyOIAlg, f.oiMap);
 
-    sum for term in terms v list makeSingle(targMod, f.img#(term.cache), algMap term.vec#(term.cache))
+    sum for single in getSingles v list makeSingle(targMod, f.img#(single.cache), algMap single.vec#(single.cache))
 )
 
 -- Should be of the form {srcMod => FreeOIModule, targMod => FreeOIModule, genImages => List}
@@ -341,14 +359,13 @@ isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(
 -- Apply a FreeOIModuleMap to a VectorInWidth
 -- Comment: expects v to belong to the domain of f
 FreeOIModuleMap VectorInWidth := (f, v) -> (
-    
     -- Handle the zero vector or zero map
     if isZero f or isZero v then return 0_(getModuleInWidth(f.targMod, getWidth v));
 
-    sum for term in terms v list (
-        elt := term.vec#(term.cache);
-        oiMap := term.cache#0;
-        basisIdx := term.cache#1;
+    sum for single in getSingles v list (
+        elt := single.vec#(single.cache);
+        oiMap := single.cache#0;
+        basisIdx := single.cache#1;
         modMap := getInducedModuleMap(f.targMod, oiMap);
         elt * modMap f.genImages#(basisIdx - 1)
     )

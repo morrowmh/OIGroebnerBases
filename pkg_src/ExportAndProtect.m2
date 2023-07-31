@@ -5,6 +5,9 @@ export {
 
         -- From FreeOIModule.m2
         "ModuleInWidth", "VectorInWidth", "FreeOIModuleMap",
+
+        -- From OIResolution.m2
+        "OIResolution",
     
     -- Keys
         -- From PolynomialOIAlgebra.m2
@@ -23,6 +26,9 @@ export {
     
         -- From oiSyz.m2
         "oiSyz",
+
+        -- From OIResolution.m2
+        "oiRes", "isComplex",
     
     -- Options
         -- From PolynomialOIAlgebra.m2

@@ -6,10 +6,10 @@ oiSyz = method(TypicalValue => List, Options => {Verbose => false, MinimizeOIGB 
 oiSyz(List, Symbol) := opts -> (L, d) -> (
     if #L === 0 then error "expected a nonempty List";
 
-    -- Return the GB if it already exists
-    if oiSyzCache#?(L, d, opts.MinimizeOIGB) then return oiSyzCache#?(L, d, opts.MinimizeOIGB);
-
     if opts.Verbose then print "Computing syzygies...";
+    
+    -- Return the GB if it already exists
+    if oiSyzCache#?(L, d, opts.MinimizeOIGB) then return oiSyzCache#(L, d, opts.MinimizeOIGB);
 
     fmod := getFreeOIModule L#0;
     shifts := for elt in L list -degree elt;

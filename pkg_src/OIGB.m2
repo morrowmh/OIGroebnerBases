@@ -4,12 +4,12 @@ oiGBCache = new MutableHashTable
 -- Compute an OI-Groebner basis for a List of VectorInWidth objects
 oiGB = method(TypicalValue => List, Options => {Verbose => false, CacheSPolynomials => true, MinimizeOIGB => true})
 oiGB List := opts -> L -> (
-    -- Return the GB if it already exists
-    if oiGBCache#?(L, opts.MinimizeOIGB) then return oiGBCache#(L, MinimizeOIGB);
-
     if #L === 0 then error "expected a nonempty List";
 
     if opts.Verbose then print "Computing OIGB...";
+
+    -- Return the GB if it already exists
+    if oiGBCache#?(L, opts.MinimizeOIGB) then return oiGBCache#(L, opts.MinimizeOIGB);
 
     encountered := new List;
     totalAdded := 0;

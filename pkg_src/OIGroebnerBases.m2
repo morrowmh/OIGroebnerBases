@@ -52,6 +52,8 @@ load "OIGB.m2"
 
 load "oiSyz.m2"
 
+load "OIResolution.m2"
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 -- DOCUMENTATION ---------------------------------------------------------------
@@ -97,5 +99,12 @@ P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
 installBasisElements(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
-time B = oiGB({b}, Verbose => true)
-time C = oiSyz(B, d, Verbose => true)
+time C = oiRes({b}, 4, Verbose => true)
+
+-- Single quadratic in width 3
+restart
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,1}, P);
+installBasisElements(F, 3);
+b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
+time C = oiRes({b}, 4, Verbose => true)
