@@ -1165,7 +1165,7 @@ P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
 installBasisElements(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
-time C = oiRes({b}, 0, Verbose => true)
+time C = oiRes({b}, 3, Verbose => true)
 
 -- Res example 3: single quadratic in width 2
 -- Comment: compare with res example 1
@@ -1174,7 +1174,7 @@ P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1}, P);
 installBasisElements(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},1);
-time C = oiRes({b}, 0, Verbose => true)
+time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 3 hours (minimal ranks 1, 2, 5, 9, 14)
 
 -- Res example 4: single quadratic in width 3
 -- Comment: compare with res example 1
@@ -1183,4 +1183,4 @@ P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
 installBasisElements(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
-time C = oiRes({b}, 2, Verbose => true)
+time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 40 minutes (minimal ranks 1, 2, 4, 7, 11)
