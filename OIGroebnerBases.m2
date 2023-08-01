@@ -362,9 +362,7 @@ compCache = new MutableHashTable
 -- Comment: expects v and w to have cache => key
 compareTerms := (v, w) -> (
     -- Return the comparison if it already exists
-    if compCache#?(v, w) then return compCache#(v, w);
-
-    print net(#keys compCache);
+    if compCache#?(hash v, hash w) then return compCache#(hash v, hash w);
 
     -- Generate the comparison
     keyv := v.cache;
@@ -379,7 +377,7 @@ compareTerms := (v, w) -> (
     ord := fmod.monOrder;
 
     local ret;
-    if keyv === keyw and eltv === eltw then ret = symbol ==
+    if v === w then ret = symbol ==
     else if ord === Lex then ( -- Lex order
         if not idxv === idxw then ( if idxv < idxw then ret = symbol > else ret = symbol < )
         else if not oiMapv.targWidth === oiMapw.targWidth then ret = oiMapv.targWidth ? oiMapw.targWidth
@@ -400,7 +398,7 @@ compareTerms := (v, w) -> (
     else error "invalid monomial order";
 
     -- Store the comparison
-    compCache#(v, w) = ret
+    compCache#(hash v, hash w) = ret
 )
 
 -- Get the lead term of a VectorInWidth
@@ -866,6 +864,7 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
         if opts.Verbose then (
             print("On critical pair " | toString(i + 1) | " out of " | toString(#oipairs));
             print("Pair: (" | net pair.im0 | ", " | net pair.im1 | ")");
+            print("Current compCache size: " | net(#keys compCache));
             i = i + 1
         );
 
@@ -1139,37 +1138,49 @@ beginDocumentation()
 
 end
 
--- Small GB example
+-- GB example 1: one linear and one quadratic
+-- Comment: see https://arxiv.org/pdf/2303.06725.pdf example 3.20
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
-F = makeFreeOIModule(e, {1,1,2}, DegreeShifts => {1, 1, 1}, P);
+F = makeFreeOIModule(e, {1,1,2}, P);
 installBasisElements(F, 1);
 installBasisElements(F, 2);
 use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
 use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
 time B = oiGB({b1, b2}, Verbose => true)
 
--- Single quadratic in width 3
+-- Res example 1: single quadratic in width 3
+-- Comment: see https://arxiv.org/pdf/2303.06725.pdf example 5.5 (i)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,2}, P);
 installBasisElements(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
-time B = oiGB({b}, Verbose => true)
-time C = oiSyz(B, d, Verbose => true)
+time C = oiRes({b}, 2, Verbose => true)
 
--- Single quadratic in width 2
+-- Res example 2: single quadratic in width 2
+-- Comment: see https://arxiv.org/pdf/2303.06725.pdf example 5.5 (ii)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
 installBasisElements(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
-time C = oiRes({b}, 4, Verbose => true)
+time C = oiRes({b}, 0, Verbose => true)
 
--- OI-ideal
+-- Res example 3: single quadratic in width 2
+-- Comment: compare with res example 1
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
-F = makeFreeOIModule(e, {0}, P);
+F = makeFreeOIModule(e, {1}, P);
+installBasisElements(F, 2);
+b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},1);
+time C = oiRes({b}, 0, Verbose => true)
+
+-- Res example 4: single quadratic in width 3
+-- Comment: compare with res example 1
+restart
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,1}, P);
 installBasisElements(F, 3);
-b = (x_(1,1)*x_(2,3)-x_(2,1)*x_(1,3))*e_(2,{},1);
-time C = oiRes({b}, 3, Verbose => true)
+b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
+time C = oiRes({b}, 2, Verbose => true)

@@ -23,6 +23,7 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
         if opts.Verbose then (
             print("On critical pair " | toString(i + 1) | " out of " | toString(#oipairs));
             print("Pair: (" | net pair.im0 | ", " | net pair.im1 | ")");
+            print("Current compCache size: " | net(#keys compCache));
             i = i + 1
         );
 

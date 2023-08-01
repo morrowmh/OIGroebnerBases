@@ -154,9 +154,7 @@ compCache = new MutableHashTable
 -- Comment: expects v and w to have cache => key
 compareTerms := (v, w) -> (
     -- Return the comparison if it already exists
-    if compCache#?(v, w) then return compCache#(v, w);
-
-    print net(#keys compCache);
+    if compCache#?(hash v, hash w) then return compCache#(hash v, hash w);
 
     -- Generate the comparison
     keyv := v.cache;
@@ -171,7 +169,7 @@ compareTerms := (v, w) -> (
     ord := fmod.monOrder;
 
     local ret;
-    if keyv === keyw and eltv === eltw then ret = symbol ==
+    if v === w then ret = symbol ==
     else if ord === Lex then ( -- Lex order
         if not idxv === idxw then ( if idxv < idxw then ret = symbol > else ret = symbol < )
         else if not oiMapv.targWidth === oiMapw.targWidth then ret = oiMapv.targWidth ? oiMapw.targWidth
@@ -192,7 +190,7 @@ compareTerms := (v, w) -> (
     else error "invalid monomial order";
 
     -- Store the comparison
-    compCache#(v, w) = ret
+    compCache#(hash v, hash w) = ret
 )
 
 -- Get the lead term of a VectorInWidth
