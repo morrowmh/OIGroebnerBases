@@ -361,18 +361,19 @@ compCache = new MutableHashTable
 -- Args: v = VectorInWidth, w = VectorInWidth
 -- Comment: expects v and w to have cache => key
 compareTerms := (v, w) -> (
-    -- Return the comparison if it already exists
-    if compCache#?(hash v, hash w) then return compCache#(hash v, hash w);
-
-    -- Generate the comparison
     keyv := v.cache;
     keyw := w.cache;
+    eltv := v.vec#keyv;
+    eltw := w.vec#keyw;
+
+    -- Return the comparison if it already exists
+    if compCache#?(keyv, eltv, keyw, eltw) then return compCache#(keyv, eltv, keyw, eltw);
+
+    -- Generate the comparison
     oiMapv := keyv#0;
     oiMapw := keyw#0;
     idxv := keyv#1;
     idxw := keyw#1;
-    eltv := v.vec#keyv;
-    eltw := w.vec#keyw;
     fmod := (class v).freeOIMod;
     ord := fmod.monOrder;
 
@@ -398,7 +399,7 @@ compareTerms := (v, w) -> (
     else error "invalid monomial order";
 
     -- Store the comparison
-    compCache#(hash v, hash w) = ret
+    compCache#(keyv, eltv, keyw, eltw) = ret
 )
 
 -- Get the lead term of a VectorInWidth
@@ -1175,6 +1176,7 @@ F = makeFreeOIModule(e, {1}, P);
 installBasisElements(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},1);
 time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 3 hours (minimal ranks 1, 2, 5, 9, 14)
+-- time C = oiRes({b}, 6, Verbose => true) -- Takes my laptop 27 hours (minimal ranks 1, 2, 5, 9, 14, 20)
 
 -- Res example 4: single quadratic in width 3
 -- Comment: compare with res example 1
