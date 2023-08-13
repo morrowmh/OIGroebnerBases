@@ -1,5 +1,4 @@
 # OIGroebnerBases - A Macaulay2 Package
-## NOTE: Currently being rewritten; see commit 0b8d477 for working code
 ## Overview
 This Macaulay2 package allows one to compute Gröbner bases, syzygies and free resolutions for submodules of free OI-modules over Noetherian polynomial OI-algebras. For an introduction to the topic, see [this paper](https://arxiv.org/pdf/1710.09247v2) and [this paper](https://arxiv.org/pdf/2303.06725).
 
