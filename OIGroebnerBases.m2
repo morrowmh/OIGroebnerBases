@@ -52,7 +52,7 @@ export {
         "makeFreeOIModule", "isZero", "installBasisElements", "getWidth", "getFreeOIModule",
 
         -- From OIGB.m2
-        "oiGB", "minimizeOIGB", "isOIGB",
+        "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",
     
         -- From oiSyz.m2
         "oiSyz",
@@ -67,8 +67,8 @@ export {
         -- From FreeOIModule.m2
         "DegreeShifts",
 
-        -- From OIGB.m2
-        "CacheSPolynomials", "MinimizeOIGB"
+        -- From OIResolution.m2
+        "TopNonminimal"
 }
 
 scan({
@@ -654,6 +654,38 @@ polyDiv := (v, L) -> (
     new HashTable from {quo => quo0, rem => rem0, divTuples => divTuples0}
 )
 
+-- Compute the normal form of a VectorInWidth modulo a List of VectorInWidth objects
+-- Args: v = VectorInWidth, L = List
+-- Comment: expects L to consist of nonzero elements
+oiNormalForm := (v, L) -> (
+    if isZero v then return v;
+
+    cls := class v;
+    rem := makeZero cls;
+
+    while not isZero v do (
+        divisionOccurred := false;
+
+        for elt in L do (
+            div := termDiv(leadTerm v, leadTerm elt);
+            if zero div.quo then continue;
+
+            modMap := getInducedModuleMap(cls.freeOIMod, div.oiMap);
+            v = v - div.quo * modMap elt;
+
+            divisionOccurred = true;
+            break
+        );
+
+        if not divisionOccurred then (
+            rem = rem + leadTerm v;
+            v = v - leadTerm v
+        )
+    );
+
+    rem
+)
+
 -- Compute the S-polynomial of two VectorInWidth objects
 -- Args: v = VectorInWidth, w = VectorInWidth
 -- Comment: expects class v === class w
@@ -723,18 +755,22 @@ oiPairs := (L, V) -> unique flatten flatten flatten flatten for fIdx to #L - 1 l
 oiGBCache = new MutableHashTable
 
 -- Compute an OI-Groebner basis for a List of VectorInWidth objects
-oiGB = method(TypicalValue => List, Options => {Verbose => false, CacheSPolynomials => true, MinimizeOIGB => true})
+oiGB = method(TypicalValue => List, Options => {Verbose => false, Strategy => Minimize})
 oiGB List := opts -> L -> (
-    if #L === 0 then error "expected a nonempty List";
-
+    if not (opts.Strategy === FastNonminimal or opts.Strategy === Minimize or opts.Strategy === Reduce) then
+        error "Expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
+    
     if opts.Verbose then print "Computing OIGB...";
 
     -- Return the GB if it already exists
-    if oiGBCache#?(L, opts.MinimizeOIGB) then return oiGBCache#(L, opts.MinimizeOIGB);
+    if oiGBCache#?(L, opts.Strategy) then return oiGBCache#(L, opts.Strategy);
+
+    -- Throw out any repeated or zero elements
+    ret := unique for elt in L list if isZero elt then continue else elt;
+    if #ret === 0 then error "expected a List of nonzero elements";
 
     encountered := new List;
     totalAdded := 0;
-    ret := L;
 
     -- Enter the main loop: terminates by an equivariant Noetherianity argument
     while true do (
@@ -745,10 +781,8 @@ oiGB List := opts -> L -> (
             s := SPolynomial((oipairs#i).im0, (oipairs#i).im1);
             if isZero s then continue;
 
-            if opts.CacheSPolynomials then (
-                if member(s, encountered) then continue
-                else encountered = append(encountered, s)
-            );
+            if member(s, encountered) then continue -- Skip S-Polynomials that have already appeared
+            else encountered = append(encountered, s);
 
             if opts.Verbose then print("On critical pair " | toString(i + 1) | " out of " | toString(#oipairs));
 
@@ -770,22 +804,34 @@ oiGB List := opts -> L -> (
     );
 
     -- Minimize the basis
-    if opts.MinimizeOIGB then (
-        if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
+    if opts.Strategy === Minimize then (
+        if opts.Verbose then print "\n----------------------------------------\n----------------------------------------\n";
         ret = minimizeOIGB(ret, Verbose => opts.Verbose)
     );
 
+    -- Reduce the basis
+    if opts.Strategy === Reduce then (
+        if opts.Verbose then print "\n----------------------------------------\n----------------------------------------\n";
+        ret = reduceOIGB(ret, Verbose => opts.Verbose)
+    );
+
     -- Store the GB
-    oiGBCache#(L, opts.MinimizeOIGB) = ret
+    oiGBCache#(L, opts.Strategy) = ret
 )
 
--- Minimize an OI-Groebner basis in the sense of monic and lt(p) not in <lt(L - {p})> for all p in L
+-- Minimize an OI-Groebner basis in the sense of monic and lt(p) not in <lt(G - {p})> for all p in G
 minimizeOIGB = method(TypicalValue => List, Options => {Verbose => false})
-minimizeOIGB List := opts -> L -> (
+minimizeOIGB List := opts -> G -> (
     if opts.Verbose then print "Computing minimal OIGB...";
 
+    -- Throw out any repeated or zero elements
+    G = unique for elt in G list if isZero elt then continue else elt;
+    if #G === 0 then error "expected a List of nonzero elements";
+
     nonRedundant := new List;
-    currentBasis := apply(unique L, makeMonic);
+    currentBasis := unique apply(G, makeMonic); -- unique is used again because collisions may happen after makeMonic
+
+    if #currentBasis === 1 then return currentBasis;
 
     while true do (
         redundantFound := false;
@@ -812,10 +858,37 @@ minimizeOIGB List := opts -> L -> (
     currentBasis
 )
 
+-- Remove a single element from a List
+-- Args: L = List, i = ZZ
+sdrop := (L, i) -> drop(L, {i, i})
+
+-- Reduce an OI-Groebner basis in the sense of monic and no term of any element is OI-divisible by the lead term of any other
+reduceOIGB = method(TypicalValue => List, Options => {Verbose => false})
+reduceOIGB List := opts -> G -> (
+    minG := minimizeOIGB(G, Verbose => opts.Verbose);
+
+    if opts.Verbose then print "\n----------------------------------------\n----------------------------------------\n\nComputing reduced OIGB...";
+
+    if #minG === 1 then return minG;
+
+    -- Reduce the basis
+    newG := new MutableList from minG;
+    for i to #newG - 1 do (
+        if opts.Verbose then print("Reducing element " | toString(i + 1) | " of " | toString(#newG));
+        dropped := flatten sdrop(toList newG, i);
+        red := oiNormalForm(newG#i, dropped);
+        newG#i = if member(red, dropped) then {} else red
+    );
+
+    flatten toList newG
+)
+
 -- Check if a List is an OI-Groebner basis
-isOIGB = method(TypicalValue => Boolean, Options => {Verbose => false, CacheSPolynomials => true})
+isOIGB = method(TypicalValue => Boolean, Options => {Verbose => false})
 isOIGB List := opts -> L -> (
-    if #L === 0 then error "expected a nonempty List";
+    -- Throw out any repeated or zero elements
+    L = unique for elt in L list if isZero elt then continue else elt;
+    if #L === 0 then error "expected a List of nonzero elements";
 
     encountered := new List;
     oipairs := oiPairs(L, opts.Verbose);
@@ -823,10 +896,8 @@ isOIGB List := opts -> L -> (
         s := SPolynomial((oipairs#i).im0, (oipairs#i).im1);
         if isZero s then continue;
 
-        if opts.CacheSPolynomials then (
-            if member(s, encountered) then continue
-            else encountered = append(encountered, s)
-        );
+        if member(s, encountered) then continue -- Skip S-Polynomials that have already appeared
+        else encountered = append(encountered, s);
 
         if opts.Verbose then print("On critical pair " | toString(i + 1) | " out of " | toString(#oipairs));
     
@@ -844,14 +915,19 @@ isOIGB List := opts -> L -> (
 oiSyzCache = new MutableHashTable
 
 -- Compute an OI-Groebner basis for the syzygy module of a List of VectorInWidth objects
-oiSyz = method(TypicalValue => List, Options => {Verbose => false, MinimizeOIGB => true})
+oiSyz = method(TypicalValue => List, Options => {Verbose => false, Strategy => Minimize})
 oiSyz(List, Symbol) := opts -> (L, d) -> (
-    if #L === 0 then error "expected a nonempty List";
-
+    if not (opts.Strategy === FastNonminimal or opts.Strategy === Minimize or opts.Strategy === Reduce) then
+        error "Expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
+    
     if opts.Verbose then print "Computing syzygies...";
     
     -- Return the GB if it already exists
-    if oiSyzCache#?(L, d, opts.MinimizeOIGB) then return oiSyzCache#(L, d, opts.MinimizeOIGB);
+    if oiSyzCache#?(L, d, opts.Strategy) then return oiSyzCache#(L, d, opts.Strategy);
+
+    -- Throw out any repeated or zero elements
+    L = unique for elt in L list if isZero elt then continue else elt;
+    if #L === 0 then error "expected a List of nonzero elements";
 
     fmod := getFreeOIModule L#0;
     shifts := for elt in L list -degree elt;
@@ -865,7 +941,6 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
         if opts.Verbose then (
             print("On critical pair " | toString(i + 1) | " out of " | toString(#oipairs));
             print("Pair: (" | net pair.im0 | ", " | net pair.im1 | ")");
-            print("Current compCache size: " | net(#keys compCache));
             i = i + 1
         );
 
@@ -891,13 +966,19 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
     );
 
     -- Minimize the basis
-    if opts.MinimizeOIGB then (
+    if opts.Strategy === Minimize then (
         if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
         ret = minimizeOIGB(ret, Verbose => opts.Verbose)
     );
 
+    -- Reduce the basis
+    if opts.Strategy === Reduce then (
+        if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
+        ret = reduceOIGB(ret, Verbose => opts.Verbose)
+    );
+
     -- Store the GB
-    oiSyzCache#(L, d, opts.MinimizeOIGB) = ret
+    oiSyzCache#(L, d, opts.Strategy) = ret
 )
 
 -- Cache for storing OI-resolutions
@@ -920,32 +1001,36 @@ describe OIResolution := C -> (
 
 OIResolution _ ZZ := (C, n) -> C.modules#n
 
--- Remove a single element from a List
--- Args: L = List, i = ZZ
-sdrop := (L, i) -> drop(L, {i, i})
-
 -- Compute an OI-resolution of length n for the OI-module generated by L
-oiRes = method(TypicalValue => OIResolution, Options => {Verbose => true, MinimizeOIGB => true})
+oiRes = method(TypicalValue => OIResolution, Options => {Verbose => false, Strategy => Minimize, TopNonminimal => false})
 oiRes(List, ZZ) := opts -> (L, n) -> (
+    if not (opts.Verbose === true or opts.Verbose === false) then error "Expected Verbose => true or Verbose => false";
+    if not (opts.TopNonminimal === true or opts.TopNonminimal === false) then error "Expected TopNonminimal => true or TopNonminimal => false";
+    if not (opts.Strategy === FastNonminimal or opts.Strategy === Minimize or opts.Strategy === Reduce) then
+        error "Expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
+    
     if n < 0 then error "expected a nonnegative integer";
-    if #L === 0 then error "expected a nonempty List";
 
     -- Return the resolution if it already exists
-    if oiResCache#?(L, n, opts.MinimizeOIGB) then return oiResCache#(L, n, opts.MinimizeOIGB);
+    if oiResCache#?(L, n, opts.Strategy, opts.TopNonminimal) then return oiResCache#(L, n, opts.Strategy, opts.TopNonminimal);
 
     ddMut := new MutableList;
     modulesMut := new MutableList;
     groundFreeOIMod := getFreeOIModule L#0;
     e := groundFreeOIMod.basisSym;
 
-    oigb := oiGB(L, Verbose => opts.Verbose, MinimizeOIGB => opts.MinimizeOIGB);
+    strat := opts.Strategy;
+    if n === 0 and opts.TopNonminimal then strat = FastNonminimal;
+    oigb := oiGB(L, Verbose => opts.Verbose, Strategy => strat);
     currentGB := oigb;
     currentSymbol := getSymbol concatenate(e, "0");
     count := 0;
 
     if n > 0 then for i to n - 1 do (
-            if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
-            syzGens := oiSyz(currentGB, currentSymbol, Verbose => opts.Verbose, MinimizeOIGB => opts.MinimizeOIGB);
+            if opts.Verbose then print "\n----------------------------------------\n----------------------------------------\n";
+
+            if i === n - 1 and opts.TopNonminimal then strat = FastNonminimal;
+            syzGens := oiSyz(currentGB, currentSymbol, Verbose => opts.Verbose, Strategy => strat);
 
             if #syzGens === 0 then break;
             count = count + 1;
@@ -975,7 +1060,7 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
 
     -- Minimize the resolution
     if #ddMut > 1 and not isZero ddMut#1 then (
-        if opts.Verbose then print "----------------------------------------\n----------------------------------------\n\nMinimizing resolution...";
+        if opts.Verbose then print "\n----------------------------------------\n----------------------------------------\n\nMinimizing resolution...";
 
         done := false;
         while not done do (
@@ -1087,7 +1172,7 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
     );
 
     -- Store the resolution
-    oiResCache#(L, n, opts.MinimizeOIGB) = new OIResolution from {dd => new List from ddMut, modules => new List from modulesMut}
+    oiResCache#(L, n, opts.Strategy) = new OIResolution from {dd => new List from ddMut, modules => new List from modulesMut}
 )
 
 -- Verify that an OIResolution is a complex
@@ -1186,3 +1271,12 @@ F = makeFreeOIModule(e, {1,1}, P);
 installBasisElements(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
 time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 40 minutes (minimal ranks 1, 2, 4, 7, 11)
+
+-- OI-ideal example
+-- Comment: 2x2 minors with a gap of at least 1
+restart
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {0}, P);
+installBasisElements(F, 3);
+b = (x_(1,1)*x_(2,3)-x_(2,1)*x_(1,3))*e_(3,{},1);
+time C = oiRes({b}, 2, Verbose => true)

@@ -22,7 +22,7 @@ export {
         "makeFreeOIModule", "isZero", "installBasisElements", "getWidth", "getFreeOIModule",
 
         -- From OIGB.m2
-        "oiGB", "minimizeOIGB", "isOIGB",
+        "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",
     
         -- From oiSyz.m2
         "oiSyz",
@@ -37,8 +37,8 @@ export {
         -- From FreeOIModule.m2
         "DegreeShifts",
 
-        -- From OIGB.m2
-        "CacheSPolynomials", "MinimizeOIGB"
+        -- From OIResolution.m2
+        "TopNonminimal"
 }
 
 scan({

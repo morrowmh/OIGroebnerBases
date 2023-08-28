@@ -121,3 +121,12 @@ F = makeFreeOIModule(e, {1,1}, P);
 installBasisElements(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
 time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 40 minutes (minimal ranks 1, 2, 4, 7, 11)
+
+-- OI-ideal example
+-- Comment: 2x2 minors with a gap of at least 1
+restart
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {0}, P);
+installBasisElements(F, 3);
+b = (x_(1,1)*x_(2,3)-x_(2,1)*x_(1,3))*e_(3,{},1);
+time C = oiRes({b}, 2, Verbose => true)

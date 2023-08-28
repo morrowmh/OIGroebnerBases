@@ -2,14 +2,19 @@
 oiSyzCache = new MutableHashTable
 
 -- Compute an OI-Groebner basis for the syzygy module of a List of VectorInWidth objects
-oiSyz = method(TypicalValue => List, Options => {Verbose => false, MinimizeOIGB => true})
+oiSyz = method(TypicalValue => List, Options => {Verbose => false, Strategy => Minimize})
 oiSyz(List, Symbol) := opts -> (L, d) -> (
-    if #L === 0 then error "expected a nonempty List";
-
+    if not (opts.Strategy === FastNonminimal or opts.Strategy === Minimize or opts.Strategy === Reduce) then
+        error "Expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
+    
     if opts.Verbose then print "Computing syzygies...";
     
     -- Return the GB if it already exists
-    if oiSyzCache#?(L, d, opts.MinimizeOIGB) then return oiSyzCache#(L, d, opts.MinimizeOIGB);
+    if oiSyzCache#?(L, d, opts.Strategy) then return oiSyzCache#(L, d, opts.Strategy);
+
+    -- Throw out any repeated or zero elements
+    L = unique for elt in L list if isZero elt then continue else elt;
+    if #L === 0 then error "expected a List of nonzero elements";
 
     fmod := getFreeOIModule L#0;
     shifts := for elt in L list -degree elt;
@@ -23,7 +28,6 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
         if opts.Verbose then (
             print("On critical pair " | toString(i + 1) | " out of " | toString(#oipairs));
             print("Pair: (" | net pair.im0 | ", " | net pair.im1 | ")");
-            print("Current compCache size: " | net(#keys compCache));
             i = i + 1
         );
 
@@ -49,11 +53,17 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
     );
 
     -- Minimize the basis
-    if opts.MinimizeOIGB then (
+    if opts.Strategy === Minimize then (
         if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
         ret = minimizeOIGB(ret, Verbose => opts.Verbose)
     );
 
+    -- Reduce the basis
+    if opts.Strategy === Reduce then (
+        if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
+        ret = reduceOIGB(ret, Verbose => opts.Verbose)
+    );
+
     -- Store the GB
-    oiSyzCache#(L, d, opts.MinimizeOIGB) = ret
+    oiSyzCache#(L, d, opts.Strategy) = ret
 )

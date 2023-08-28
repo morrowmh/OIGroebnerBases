@@ -64,3 +64,35 @@ polyDiv := (v, L) -> (
 
     new HashTable from {quo => quo0, rem => rem0, divTuples => divTuples0}
 )
+
+-- Compute the normal form of a VectorInWidth modulo a List of VectorInWidth objects
+-- Args: v = VectorInWidth, L = List
+-- Comment: expects L to consist of nonzero elements
+oiNormalForm := (v, L) -> (
+    if isZero v then return v;
+
+    cls := class v;
+    rem := makeZero cls;
+
+    while not isZero v do (
+        divisionOccurred := false;
+
+        for elt in L do (
+            div := termDiv(leadTerm v, leadTerm elt);
+            if zero div.quo then continue;
+
+            modMap := getInducedModuleMap(cls.freeOIMod, div.oiMap);
+            v = v - div.quo * modMap elt;
+
+            divisionOccurred = true;
+            break
+        );
+
+        if not divisionOccurred then (
+            rem = rem + leadTerm v;
+            v = v - leadTerm v
+        )
+    );
+
+    rem
+)
