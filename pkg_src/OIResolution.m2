@@ -189,7 +189,7 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
     );
 
     -- Store the resolution
-    oiResCache#(L, n, opts.Strategy) = new OIResolution from {dd => new List from ddMut, modules => new List from modulesMut}
+    oiResCache#(L, n, opts.Strategy, opts.TopNonminimal) = new OIResolution from {dd => new List from ddMut, modules => new List from modulesMut}
 )
 
 -- Verify that an OIResolution is a complex

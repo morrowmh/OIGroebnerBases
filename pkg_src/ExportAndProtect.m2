@@ -4,7 +4,7 @@ export {
         "PolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "ModuleInWidth", "VectorInWidth", "FreeOIModuleMap",
+        "FreeOIModule", "ModuleInWidth", "VectorInWidth", "FreeOIModuleMap",
 
         -- From OIResolution.m2
         "OIResolution",
@@ -19,7 +19,7 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "isZero", "installBasisElements", "getWidth", "getFreeOIModule",
+        "makeFreeOIModule", "installBasisElements",
 
         -- From OIGB.m2
         "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",

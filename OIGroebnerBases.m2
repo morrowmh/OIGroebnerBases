@@ -34,7 +34,7 @@ export {
         "PolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "ModuleInWidth", "VectorInWidth", "FreeOIModuleMap",
+        "FreeOIModule", "ModuleInWidth", "VectorInWidth", "FreeOIModuleMap",
 
         -- From OIResolution.m2
         "OIResolution",
@@ -49,7 +49,7 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "isZero", "installBasisElements", "getWidth", "getFreeOIModule",
+        "makeFreeOIModule", "installBasisElements",
 
         -- From OIGB.m2
         "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",
@@ -365,11 +365,6 @@ compareTerms := (v, w) -> (
     keyw := w.cache;
     eltv := v.vec#keyv;
     eltw := w.vec#keyw;
-
-    -- Return the comparison if it already exists
-    if compCache#?(keyv, eltv, keyw, eltw) then return compCache#(keyv, eltv, keyw, eltw);
-
-    -- Generate the comparison
     oiMapv := keyv#0;
     oiMapw := keyw#0;
     idxv := keyv#1;
@@ -377,6 +372,10 @@ compareTerms := (v, w) -> (
     fmod := (class v).freeOIMod;
     ord := fmod.monOrder;
 
+    -- Return the comparison if it already exists
+    if compCache#?(keyv, eltv, keyw, eltw, ord) then return compCache#(keyv, eltv, keyw, eltw, ord);
+
+    -- Generate the comparison
     local ret;
     if v === w then ret = symbol ==
     else if ord === Lex then ( -- Lex order
@@ -399,7 +398,7 @@ compareTerms := (v, w) -> (
     else error "invalid monomial order";
 
     -- Store the comparison
-    compCache#(keyv, eltv, keyw, eltw) = ret
+    compCache#(keyv, eltv, keyw, eltw, ord) = ret
 )
 
 -- Get the lead term of a VectorInWidth
@@ -706,10 +705,13 @@ SPolynomial := (v, w) -> (
 -- Should be of the form {map0 => OIMap, vec0 => VectorInWidth, im0 => VectorInWidth, map1 => OIMap, vec1 => VectorInWidth, im1 => VectorInWidth}
 OIPair = new Type of HashTable
 
+-- Comparison method for OIPair objects
+OIPair ? OIPair := (p, q) -> getWidth p.im0 ? getWidth q.im0
+
 -- Compute the critical pairs for a List of VectorInWidth objects
 -- Args: L = List, V = Boolean
 -- Comment: map0 and map1 are the OI-maps applied to vec0 and vec1 to make im0 and im1
-oiPairs := (L, V) -> unique flatten flatten flatten flatten for fIdx to #L - 1 list (
+oiPairs := (L, V) -> sort unique flatten flatten flatten flatten for fIdx to #L - 1 list (
     f := L#fIdx;
     ltf := leadTerm f;
     for gIdx from fIdx to #L - 1 list (
@@ -1172,7 +1174,7 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
     );
 
     -- Store the resolution
-    oiResCache#(L, n, opts.Strategy) = new OIResolution from {dd => new List from ddMut, modules => new List from modulesMut}
+    oiResCache#(L, n, opts.Strategy, opts.TopNonminimal) = new OIResolution from {dd => new List from ddMut, modules => new List from modulesMut}
 )
 
 -- Verify that an OIResolution is a complex
@@ -1251,7 +1253,7 @@ P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
 installBasisElements(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
-time C = oiRes({b}, 3, Verbose => true)
+time C = oiRes({b}, 4, Verbose => true)
 
 -- Res example 3: single quadratic in width 2
 -- Comment: compare with res example 1

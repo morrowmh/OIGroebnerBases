@@ -157,11 +157,6 @@ compareTerms := (v, w) -> (
     keyw := w.cache;
     eltv := v.vec#keyv;
     eltw := w.vec#keyw;
-
-    -- Return the comparison if it already exists
-    if compCache#?(keyv, eltv, keyw, eltw) then return compCache#(keyv, eltv, keyw, eltw);
-
-    -- Generate the comparison
     oiMapv := keyv#0;
     oiMapw := keyw#0;
     idxv := keyv#1;
@@ -169,6 +164,10 @@ compareTerms := (v, w) -> (
     fmod := (class v).freeOIMod;
     ord := fmod.monOrder;
 
+    -- Return the comparison if it already exists
+    if compCache#?(keyv, eltv, keyw, eltw, ord) then return compCache#(keyv, eltv, keyw, eltw, ord);
+
+    -- Generate the comparison
     local ret;
     if v === w then ret = symbol ==
     else if ord === Lex then ( -- Lex order
@@ -191,7 +190,7 @@ compareTerms := (v, w) -> (
     else error "invalid monomial order";
 
     -- Store the comparison
-    compCache#(keyv, eltv, keyw, eltw) = ret
+    compCache#(keyv, eltv, keyw, eltw, ord) = ret
 )
 
 -- Get the lead term of a VectorInWidth
