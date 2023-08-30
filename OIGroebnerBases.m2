@@ -49,7 +49,7 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "installBasisElements",
+        "makeFreeOIModule", "installBasisElements", "oiOrbit",
 
         -- From OIGB.m2
         "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",
@@ -359,12 +359,12 @@ compCache = new MutableHashTable
 
 -- Comparison method for VectorInWidth terms
 -- Args: v = VectorInWidth, w = VectorInWidth
--- Comment: expects v and w to have cache => key
+-- Comment: expects v and w to be nonzero and have cache => key
 compareTerms := (v, w) -> (
     keyv := v.cache;
     keyw := w.cache;
-    eltv := v.vec#keyv;
-    eltw := w.vec#keyw;
+    monv := leadMonomial(v.vec#keyv);
+    monw := leadMonomial(w.vec#keyw);
     oiMapv := keyv#0;
     oiMapw := keyw#0;
     idxv := keyv#1;
@@ -373,7 +373,7 @@ compareTerms := (v, w) -> (
     ord := fmod.monOrder;
 
     -- Return the comparison if it already exists
-    if compCache#?(keyv, eltv, keyw, eltw, ord) then return compCache#(keyv, eltv, keyw, eltw, ord);
+    if compCache#?(keyv, monv, keyw, monw, ord) then return compCache#(keyv, monv, keyw, monw, ord);
 
     -- Generate the comparison
     local ret;
@@ -382,7 +382,7 @@ compareTerms := (v, w) -> (
         if not idxv === idxw then ( if idxv < idxw then ret = symbol > else ret = symbol < )
         else if not oiMapv.targWidth === oiMapw.targWidth then ret = oiMapv.targWidth ? oiMapw.targWidth
         else if not oiMapv.img === oiMapw.img then ret = oiMapv.img ? oiMapw.img
-        else ret = eltv ? eltw
+        else ret = monv ? monw
     )
     else if instance(ord, List) then ( -- Schreyer order
         fmodMap := new FreeOIModuleMap from {srcMod => fmod, targMod => getFreeOIModule ord#0, genImages => ord};
@@ -398,7 +398,7 @@ compareTerms := (v, w) -> (
     else error "invalid monomial order";
 
     -- Store the comparison
-    compCache#(keyv, eltv, keyw, eltw, ord) = ret
+    compCache#(keyv, monv, keyw, monw, ord) = ret
 )
 
 -- Get the lead term of a VectorInWidth
@@ -584,6 +584,15 @@ isHomogeneous FreeOIModuleMap := f -> (
     for elt in f.genImages do if not isHomogeneous elt then return false;
 
     -f.srcMod.degShifts === apply(f.genImages, degree)
+)
+
+-- Compute the n-orbit of a List of VectorInWidth objects
+oiOrbit = method(TypicalValue => List)
+oiOrbit(List, ZZ) := (L, n) -> (
+    if #L === 0 then error "expected a nonempty List";
+    if n < 0 then error "expected a nonnegative integer";
+
+    unique flatten for elt in L list for oimap in getOIMaps(getWidth elt, n) list (getInducedModuleMap(getFreeOIModule elt, oimap)) elt
 )
 
 -- Division function for VectorInWidth terms
