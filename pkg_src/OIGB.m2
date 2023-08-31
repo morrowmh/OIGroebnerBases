@@ -5,7 +5,7 @@ oiGBCache = new MutableHashTable
 oiGB = method(TypicalValue => List, Options => {Verbose => false, Strategy => Minimize})
 oiGB List := opts -> L -> (
     if not (opts.Strategy === FastNonminimal or opts.Strategy === Minimize or opts.Strategy === Reduce) then
-        error "Expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
+        error "expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
     
     if opts.Verbose then print "Computing OIGB...";
 
@@ -14,7 +14,7 @@ oiGB List := opts -> L -> (
 
     -- Throw out any repeated or zero elements
     ret := unique for elt in L list if isZero elt then continue else elt;
-    if #ret === 0 then error "expected a List of nonzero elements";
+    if #ret === 0 then error "expected a nonempty List of nonzero elements";
 
     encountered := new List;
     totalAdded := 0;
@@ -73,7 +73,7 @@ minimizeOIGB List := opts -> G -> (
 
     -- Throw out any repeated or zero elements
     G = unique for elt in G list if isZero elt then continue else elt;
-    if #G === 0 then error "expected a List of nonzero elements";
+    if #G === 0 then error "expected a nonempty List of nonzero elements";
 
     nonRedundant := new List;
     currentBasis := unique apply(G, makeMonic); -- unique is used again because collisions may happen after makeMonic
@@ -133,9 +133,11 @@ reduceOIGB List := opts -> G -> (
 -- Check if a List is an OI-Groebner basis
 isOIGB = method(TypicalValue => Boolean, Options => {Verbose => false})
 isOIGB List := opts -> L -> (
+    if opts.Verbose then print "Checking Buchberger's Criterion...";
+
     -- Throw out any repeated or zero elements
     L = unique for elt in L list if isZero elt then continue else elt;
-    if #L === 0 then error "expected a List of nonzero elements";
+    if #L === 0 then error "expected a nonempty List of nonzero elements";
 
     encountered := new List;
     oipairs := oiPairs(L, opts.Verbose);

@@ -122,9 +122,8 @@ installBasisElements(FreeOIModule, ZZ) := (F, n) -> (
 
 -- Check if a VectorInWidth is zero
 isZero VectorInWidth := v -> (
-    ret := true;
-    for val in values v.vec do if not zero val then ( ret = false; break );
-    ret
+    for val in values v.vec do if not zero val then return false;
+    true
 )
 
 -- Get the terms of a VectorInWidth
@@ -358,7 +357,7 @@ isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(
 -- Comment: expects v to belong to the domain of f
 FreeOIModuleMap VectorInWidth := (f, v) -> (
     -- Handle the zero vector or zero map
-    if isZero f or isZero v then return 0_(getModuleInWidth(f.targMod, getWidth v));
+    if isZero f or isZero v then return makeZero getModuleInWidth(f.targMod, getWidth v);
 
     sum for single in getSingles v list (
         elt := single.vec#(single.cache);
@@ -381,7 +380,6 @@ isHomogeneous FreeOIModuleMap := f -> (
 -- Compute the n-orbit of a List of VectorInWidth objects
 oiOrbit = method(TypicalValue => List)
 oiOrbit(List, ZZ) := (L, n) -> (
-    if #L === 0 then error "expected a nonempty List";
     if n < 0 then error "expected a nonnegative integer";
 
     unique flatten for elt in L list for oimap in getOIMaps(getWidth elt, n) list (getInducedModuleMap(getFreeOIModule elt, oimap)) elt

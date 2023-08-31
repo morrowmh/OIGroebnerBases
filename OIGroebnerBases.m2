@@ -330,9 +330,8 @@ installBasisElements(FreeOIModule, ZZ) := (F, n) -> (
 
 -- Check if a VectorInWidth is zero
 isZero VectorInWidth := v -> (
-    ret := true;
-    for val in values v.vec do if not zero val then ( ret = false; break );
-    ret
+    for val in values v.vec do if not zero val then return false;
+    true
 )
 
 -- Get the terms of a VectorInWidth
@@ -566,7 +565,7 @@ isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(
 -- Comment: expects v to belong to the domain of f
 FreeOIModuleMap VectorInWidth := (f, v) -> (
     -- Handle the zero vector or zero map
-    if isZero f or isZero v then return 0_(getModuleInWidth(f.targMod, getWidth v));
+    if isZero f or isZero v then return makeZero getModuleInWidth(f.targMod, getWidth v);
 
     sum for single in getSingles v list (
         elt := single.vec#(single.cache);
@@ -589,7 +588,6 @@ isHomogeneous FreeOIModuleMap := f -> (
 -- Compute the n-orbit of a List of VectorInWidth objects
 oiOrbit = method(TypicalValue => List)
 oiOrbit(List, ZZ) := (L, n) -> (
-    if #L === 0 then error "expected a nonempty List";
     if n < 0 then error "expected a nonnegative integer";
 
     unique flatten for elt in L list for oimap in getOIMaps(getWidth elt, n) list (getInducedModuleMap(getFreeOIModule elt, oimap)) elt
@@ -769,7 +767,7 @@ oiGBCache = new MutableHashTable
 oiGB = method(TypicalValue => List, Options => {Verbose => false, Strategy => Minimize})
 oiGB List := opts -> L -> (
     if not (opts.Strategy === FastNonminimal or opts.Strategy === Minimize or opts.Strategy === Reduce) then
-        error "Expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
+        error "expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
     
     if opts.Verbose then print "Computing OIGB...";
 
@@ -778,7 +776,7 @@ oiGB List := opts -> L -> (
 
     -- Throw out any repeated or zero elements
     ret := unique for elt in L list if isZero elt then continue else elt;
-    if #ret === 0 then error "expected a List of nonzero elements";
+    if #ret === 0 then error "expected a nonempty List of nonzero elements";
 
     encountered := new List;
     totalAdded := 0;
@@ -837,7 +835,7 @@ minimizeOIGB List := opts -> G -> (
 
     -- Throw out any repeated or zero elements
     G = unique for elt in G list if isZero elt then continue else elt;
-    if #G === 0 then error "expected a List of nonzero elements";
+    if #G === 0 then error "expected a nonempty List of nonzero elements";
 
     nonRedundant := new List;
     currentBasis := unique apply(G, makeMonic); -- unique is used again because collisions may happen after makeMonic
@@ -897,9 +895,11 @@ reduceOIGB List := opts -> G -> (
 -- Check if a List is an OI-Groebner basis
 isOIGB = method(TypicalValue => Boolean, Options => {Verbose => false})
 isOIGB List := opts -> L -> (
+    if opts.Verbose then print "Checking Buchberger's Criterion...";
+
     -- Throw out any repeated or zero elements
     L = unique for elt in L list if isZero elt then continue else elt;
-    if #L === 0 then error "expected a List of nonzero elements";
+    if #L === 0 then error "expected a nonempty List of nonzero elements";
 
     encountered := new List;
     oipairs := oiPairs(L, opts.Verbose);
@@ -929,7 +929,7 @@ oiSyzCache = new MutableHashTable
 oiSyz = method(TypicalValue => List, Options => {Verbose => false, Strategy => Minimize})
 oiSyz(List, Symbol) := opts -> (L, d) -> (
     if not (opts.Strategy === FastNonminimal or opts.Strategy === Minimize or opts.Strategy === Reduce) then
-        error "Expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
+        error "expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
     
     if opts.Verbose then print "Computing syzygies...";
     
@@ -938,7 +938,7 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
 
     -- Throw out any repeated or zero elements
     L = unique for elt in L list if isZero elt then continue else elt;
-    if #L === 0 then error "expected a List of nonzero elements";
+    if #L === 0 then error "expected a nonempty List of nonzero elements";
 
     fmod := getFreeOIModule L#0;
     shifts := for elt in L list -degree elt;
@@ -976,15 +976,18 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
         syzygy
     );
 
+    -- Throw out any repeated or zero elements
+    ret = unique for elt in ret list if isZero elt then continue else elt;
+
     -- Minimize the basis
-    if opts.Strategy === Minimize then (
-        if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
+    if #ret > 0 and opts.Strategy === Minimize then (
+        if opts.Verbose then print "\n----------------------------------------\n----------------------------------------\n";
         ret = minimizeOIGB(ret, Verbose => opts.Verbose)
     );
 
     -- Reduce the basis
-    if opts.Strategy === Reduce then (
-        if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
+    if #ret > 0 and opts.Strategy === Reduce then (
+        if opts.Verbose then print "\n----------------------------------------\n----------------------------------------\n";
         ret = reduceOIGB(ret, Verbose => opts.Verbose)
     );
 
@@ -1015,25 +1018,27 @@ OIResolution _ ZZ := (C, n) -> C.modules#n
 -- Compute an OI-resolution of length n for the OI-module generated by L
 oiRes = method(TypicalValue => OIResolution, Options => {Verbose => false, Strategy => Minimize, TopNonminimal => false})
 oiRes(List, ZZ) := opts -> (L, n) -> (
-    if not (opts.Verbose === true or opts.Verbose === false) then error "Expected Verbose => true or Verbose => false";
-    if not (opts.TopNonminimal === true or opts.TopNonminimal === false) then error "Expected TopNonminimal => true or TopNonminimal => false";
+    if not (opts.Verbose === true or opts.Verbose === false) then error "expected Verbose => true or Verbose => false";
+    if not (opts.TopNonminimal === true or opts.TopNonminimal === false) then error "expected TopNonminimal => true or TopNonminimal => false";
     if not (opts.Strategy === FastNonminimal or opts.Strategy === Minimize or opts.Strategy === Reduce) then
-        error "Expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
+        error "expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
     
     if n < 0 then error "expected a nonnegative integer";
 
+    if opts.Verbose then print "Computing OI-resolution";
+
     -- Return the resolution if it already exists
     if oiResCache#?(L, n, opts.Strategy, opts.TopNonminimal) then return oiResCache#(L, n, opts.Strategy, opts.TopNonminimal);
-
-    ddMut := new MutableList;
-    modulesMut := new MutableList;
-    groundFreeOIMod := getFreeOIModule L#0;
-    e := groundFreeOIMod.basisSym;
 
     strat := opts.Strategy;
     if n === 0 and opts.TopNonminimal then strat = FastNonminimal;
     oigb := oiGB(L, Verbose => opts.Verbose, Strategy => strat);
     currentGB := oigb;
+
+    ddMut := new MutableList;
+    modulesMut := new MutableList;
+    groundFreeOIMod := getFreeOIModule currentGB#0;
+    e := groundFreeOIMod.basisSym;
     currentSymbol := getSymbol concatenate(e, "0");
     count := 0;
 
@@ -1187,7 +1192,7 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
 )
 
 -- Verify that an OIResolution is a complex
-isComplex = method(TypicalValue => Boolean, Options => {Verbose => true})
+isComplex = method(TypicalValue => Boolean, Options => {Verbose => false})
 isComplex OIResolution := opts -> C -> (
     if #C.dd < 2 then error "expected a sequence with at least two maps";
 

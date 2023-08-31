@@ -5,7 +5,7 @@ oiSyzCache = new MutableHashTable
 oiSyz = method(TypicalValue => List, Options => {Verbose => false, Strategy => Minimize})
 oiSyz(List, Symbol) := opts -> (L, d) -> (
     if not (opts.Strategy === FastNonminimal or opts.Strategy === Minimize or opts.Strategy === Reduce) then
-        error "Expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
+        error "expected Strategy => FastNonminimal or Strategy => Minimize or Strategy => Reduce";
     
     if opts.Verbose then print "Computing syzygies...";
     
@@ -14,7 +14,7 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
 
     -- Throw out any repeated or zero elements
     L = unique for elt in L list if isZero elt then continue else elt;
-    if #L === 0 then error "expected a List of nonzero elements";
+    if #L === 0 then error "expected a nonempty List of nonzero elements";
 
     fmod := getFreeOIModule L#0;
     shifts := for elt in L list -degree elt;
@@ -52,15 +52,18 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
         syzygy
     );
 
+    -- Throw out any repeated or zero elements
+    ret = unique for elt in ret list if isZero elt then continue else elt;
+
     -- Minimize the basis
-    if opts.Strategy === Minimize then (
-        if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
+    if #ret > 0 and opts.Strategy === Minimize then (
+        if opts.Verbose then print "\n----------------------------------------\n----------------------------------------\n";
         ret = minimizeOIGB(ret, Verbose => opts.Verbose)
     );
 
     -- Reduce the basis
-    if opts.Strategy === Reduce then (
-        if opts.Verbose then print "----------------------------------------\n----------------------------------------\n";
+    if #ret > 0 and opts.Strategy === Reduce then (
+        if opts.Verbose then print "\n----------------------------------------\n----------------------------------------\n";
         ret = reduceOIGB(ret, Verbose => opts.Verbose)
     );
 
