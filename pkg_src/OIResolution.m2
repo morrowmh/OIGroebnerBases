@@ -97,11 +97,11 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
                 for j to #ddMap.genImages - 1 do (
                     if isZero ddMap.genImages#j then continue;
 
-                    for single in getSingles ddMap.genImages#j do if (single.cache#0).img === toList(1..(single.cache#0).targWidth) and isUnit single.vec#(single.cache) then (
+                    for single in keyedSingles ddMap.genImages#j do if (single.key#0).img === toList(1..(single.key#0).targWidth) and isUnit single.vec#(single.key) then (
                         unitFound = true;
                         done = false;
                         data = {i, j, single};
-                        if opts.Verbose then print("Unit found on term: " | net single);
+                        if opts.Verbose then print("Unit found on term: " | net single.vec);
                         break
                     );
 
@@ -116,7 +116,7 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
                 if opts.Verbose then print "Pruning...";
 
                 unitSingle := data#2;
-                targBasisPos := unitSingle.cache#1 - 1;
+                targBasisPos := unitSingle.key#1 - 1;
                 srcBasisPos := data#1;
                 ddMap := ddMut#(data#0);
                 srcFreeOIMod := ddMap.srcMod;
@@ -136,23 +136,23 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
 
                     -- Calculate the stuff to subtract off
                     thingToSubtract := makeZero getModuleInWidth(srcFreeOIMod, srcFreeOIMod.genWidths#i);
-                    for single in getSingles ddMap.genImages#i do (
-                        if not single.cache#1 === targBasisPos + 1 then continue;
+                    for single in keyedSingles ddMap.genImages#i do (
+                        if not single.key#1 === targBasisPos + 1 then continue;
 
-                        modMap := getInducedModuleMap(srcFreeOIMod, single.cache#0);
+                        modMap := getInducedModuleMap(srcFreeOIMod, single.key#0);
                         basisElt := getGenerator(srcFreeOIMod, srcBasisPos);
-                        thingToSubtract = thingToSubtract + single.vec#(single.cache) * modMap basisElt
+                        thingToSubtract = thingToSubtract + single.vec#(single.key) * modMap basisElt
                     );
 
                     -- Calculate the new image
                     basisElt := getGenerator(srcFreeOIMod, i);
-                    newGenImage0 := ddMap(basisElt - lift(1 // unitSingle.vec#(unitSingle.cache), srcFreeOIMod.polyOIAlg.baseField) * thingToSubtract);
+                    newGenImage0 := ddMap(basisElt - lift(1 // unitSingle.vec#(unitSingle.key), srcFreeOIMod.polyOIAlg.baseField) * thingToSubtract);
                     M := getModuleInWidth(newTargFreeOIMod, getWidth newGenImage0);
                     newGenImage := makeZero M;
-                    for newSingle in getSingles newGenImage0 do (
-                        idx := newSingle.cache#1;
+                    for newSingle in keyedSingles newGenImage0 do (
+                        idx := newSingle.key#1;
                         if idx > targBasisPos + 1 then idx = idx - 1; -- Relabel
-                        newGenImage = newGenImage + makeSingle(M, (newSingle.cache#0, idx), newSingle.vec#(newSingle.cache))
+                        newGenImage = newGenImage + makeSingle(M, (newSingle.key#0, idx), newSingle.vec#(newSingle.key))
                     );
 
                     newGenImage
@@ -174,11 +174,11 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
                     for i to #ddMap.genImages - 1 do (
                         M := getModuleInWidth(newSrcFreeOIMod, getWidth ddMap.genImages#i);
                         newGenImage := makeZero M;
-                        for single in getSingles ddMap.genImages#i do (
-                            idx := single.cache#1;
+                        for single in keyedSingles ddMap.genImages#i do (
+                            idx := single.key#1;
                             if idx === srcBasisPos + 1 then continue; -- Projection
                             if idx > srcBasisPos + 1 then idx = idx - 1; -- Relabel
-                            newGenImage = newGenImage + makeSingle(M, (single.cache#0, idx), single.vec#(single.cache))
+                            newGenImage = newGenImage + makeSingle(M, (single.key#0, idx), single.vec#(single.key))
                         );
 
                         newGenImages#i = newGenImage

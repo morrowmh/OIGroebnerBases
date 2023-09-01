@@ -1,18 +1,17 @@
--- Division function for VectorInWidth terms
--- Args: v = VectorInWidth, w = VectorInWidth
+-- Division function for KeyedVectorInWidth terms
+-- Args: v = KeyedVectorInWidth, w = KeyedVectorInWidth
 -- Comment: tries to divide v by w and returns a HashTable of the form {quo => RingElement, oiMap => OIMap}
--- Comment: expects v and w to have cache => key
 termDiv := (v, w) -> (
-    clsv := class v;
-    clsw := class w;
+    clsv := class v.vec;
+    clsw := class w.vec;
     fmod := clsv.freeOIMod;
 
-    if isZero v then return hashTable {quo => 0_(getAlgebraInWidth(fmod.polyOIAlg, clsv.wid)), oiMap => null};
+    if isZero v.vec then return hashTable {quo => 0_(getAlgebraInWidth(fmod.polyOIAlg, clsv.wid)), oiMap => null};
 
     widv := clsv.wid;
     widw := clsw.wid;
-    keyv := v.cache;
-    keyw := w.cache;
+    keyv := v.key;
+    keyw := w.key;
 
     if widv === widw then (
         if keyv === keyw and zero(v.vec#keyv % w.vec#keyw) then
@@ -20,9 +19,11 @@ termDiv := (v, w) -> (
     )
     else for oiMap0 in getOIMaps(widw, widv) do (
         modMap := getInducedModuleMap(fmod, oiMap0);
-        imgw := modMap w;
-        if keyv === imgw.cache and zero(v.vec#keyv % imgw.vec#(imgw.cache)) then
-            return hashTable {quo => v.vec#keyv // imgw.vec#(imgw.cache), oiMap => oiMap0}
+        imgw := modMap w.vec;
+        keyimgw := (oiMap0 w.key#0, w.key#1);
+
+        if keyv === keyimgw and zero(v.vec#keyv % imgw#keyimgw) then
+            return hashTable {quo => v.vec#keyv // imgw#keyimgw, oiMap => oiMap0}
     );
 
     return hashTable {quo => 0_(getAlgebraInWidth(fmod.polyOIAlg, clsv.wid)), oiMap => null}
@@ -44,7 +45,7 @@ polyDiv := (v, L) -> (
         divTuple := null;
         for i to #L - 1 do (
             elt := L#i;
-            div := termDiv(leadTerm rem0, leadTerm elt);
+            div := termDiv(keyedLeadTerm rem0, keyedLeadTerm elt);
             if zero div.quo then continue;
 
             modMap := getInducedModuleMap(cls.freeOIMod, div.oiMap);
@@ -78,7 +79,7 @@ oiNormalForm := (v, L) -> (
         divisionOccurred := false;
 
         for elt in L do (
-            div := termDiv(leadTerm v, leadTerm elt);
+            div := termDiv(keyedLeadTerm v, keyedLeadTerm elt);
             if zero div.quo then continue;
 
             modMap := getInducedModuleMap(cls.freeOIMod, div.oiMap);

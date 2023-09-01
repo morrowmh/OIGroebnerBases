@@ -31,10 +31,10 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
             i = i + 1
         );
 
-        ltf := leadTerm pair.im0;
-        ltg := leadTerm pair.im1;
-        ltfelt := ltf.vec#(ltf.cache);
-        ltgelt := ltg.vec#(ltg.cache);
+        ltf := keyedLeadTerm pair.im0;
+        ltg := keyedLeadTerm pair.im1;
+        ltfelt := ltf.vec#(ltf.key);
+        ltgelt := ltg.vec#(ltg.key);
         lcmlmfg := lcm(leadMonomial ltfelt, leadMonomial ltgelt);
         s := SPolynomial(pair.im0, pair.im1);
         M := getModuleInWidth(G, getWidth s);
@@ -45,7 +45,9 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
             thingToSubtract = thingToSubtract + makeSingle(M, ((tuple#0).oiMap, 1 + tuple#1), (tuple#0).quo);
         
         -- Make the syzygy
-        syzygy := makeSingle(M, (pair.map0, 1 + pair.idx0), lcmlmfg // ltfelt) - makeSingle(M, (pair.map1, 1 + pair.idx1), lcmlmfg // ltgelt) - thingToSubtract;
+        sing1 := makeSingle(M, (pair.map0, 1 + pair.idx0), lcmlmfg // ltfelt);
+        sing2 := makeSingle(M, (pair.map1, 1 + pair.idx1), lcmlmfg // ltgelt);
+        syzygy := sing1 - sing2 - thingToSubtract;
 
         if opts.Verbose then print("Generated syzygy: " | net syzygy);
 

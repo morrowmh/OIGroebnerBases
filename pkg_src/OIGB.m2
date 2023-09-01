@@ -87,8 +87,8 @@ minimizeOIGB List := opts -> G -> (
             if member(p, nonRedundant) then continue; -- Skip elements already verified to be nonredundant
 
             minusp := toList((set currentBasis) - set {p});
-            ltp := leadTerm p;
-            for elt in minusp do if not zero (termDiv(ltp, leadTerm elt)).quo then (
+            ltp := keyedLeadTerm p;
+            for elt in minusp do if not zero (termDiv(ltp, keyedLeadTerm elt)).quo then (
                 if opts.Verbose then print("Found redundant element: " | net p);
                 redundantFound = true;
                 currentBasis = minusp;

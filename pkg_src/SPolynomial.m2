@@ -6,10 +6,10 @@ SPolynomial := (v, w) -> (
 
     if isZero v or isZero w then return makeZero cls;
 
-    ltv := leadTerm v;
-    ltw := leadTerm w;
-    ltvelt := ltv.vec#(ltv.cache);
-    ltwelt := ltw.vec#(ltw.cache);
+    ltv := keyedLeadTerm v;
+    ltw := keyedLeadTerm w;
+    ltvelt := ltv.vec#(ltv.key);
+    ltwelt := ltw.vec#(ltw.key);
     lcmlmvw := lcm(leadMonomial ltvelt, leadMonomial ltwelt);
 
     (lcmlmvw // ltvelt) * v - (lcmlmvw // ltwelt) * w

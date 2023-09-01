@@ -9,14 +9,14 @@ OIPair ? OIPair := (p, q) -> getWidth p.im0 ? getWidth q.im0
 -- Comment: map0 and map1 are the OI-maps applied to vec0 and vec1 to make im0 and im1
 oiPairs := (L, V) -> sort unique flatten flatten flatten flatten for fIdx to #L - 1 list (
     f := L#fIdx;
-    ltf := leadTerm f;
+    ltf := keyedLeadTerm f;
     for gIdx from fIdx to #L - 1 list (
         g := L#gIdx;
-        ltg := leadTerm g;
+        ltg := keyedLeadTerm g;
         clsf := class f;
         clsg := class g;
 
-        if not ltf.cache#1 === ltg.cache#1 then continue; -- These will have lcm zero
+        if not ltf.key#1 === ltg.key#1 then continue; -- These will have lcm zero
 
         widf := clsf.wid;
         widg := clsg.wid;
@@ -34,7 +34,7 @@ oiPairs := (L, V) -> sort unique flatten flatten flatten flatten for fIdx to #L 
                 for subset in subsets(oiMapFromf.img, i) list (
                     oiMapFromg := makeOIMap(k, sort toList(base + set subset));
 
-                    if not oiMapFromf ltf.cache#0 === oiMapFromg ltg.cache#0 then continue; -- These will have lcm zero
+                    if not oiMapFromf ltf.key#0 === oiMapFromg ltg.key#0 then continue; -- These will have lcm zero
                     if fIdx === gIdx and oiMapFromf === oiMapFromg then continue; -- These will yield trivial S-polynomials and syzygies
 
                     if V then print("Found suitable OI-maps " | net oiMapFromf | " and " | net oiMapFromg);
