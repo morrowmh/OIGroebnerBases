@@ -38,6 +38,10 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
         basisKeys => new MutableHashTable}
 )
 
+-- Get the rank of a FreeOIModule
+getRank = method(TypicalValue => ZZ)
+getRank FreeOIModule := F -> #F.genWidths
+
 -- Check if a FreeOIModule is zero
 isZero = method(TypicalValue => Boolean)
 isZero FreeOIModule := F -> F.genWidths === {}
@@ -154,6 +158,10 @@ getGenerator := (F, i) -> (
     key := (makeOIMap(n, toList(1..n)), i + 1);
     makeSingle(M, key, 1_(getAlgebraInWidth(F.polyOIAlg, n)))
 )
+
+-- Get the generators of a FreeOIModule
+getGenerators = method(TypicalValue => List)
+getGenerators FreeOIModule := F -> for i to #F.genWidths - 1 list getGenerator(F, i)
 
 -- Get the keyed lead term of a VectorInWidth
 keyedLeadTerm := v -> (

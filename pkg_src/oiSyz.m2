@@ -14,7 +14,7 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
 
     -- Throw out any repeated or zero elements
     L = unique for elt in L list if isZero elt then continue else elt;
-    if #L === 0 then error "expected a nonempty List of nonzero elements";
+    if #L === 0 then error "expected a nonempty list of nonzero elements";
 
     fmod := getFreeOIModule L#0;
     shifts := for elt in L list -degree elt;

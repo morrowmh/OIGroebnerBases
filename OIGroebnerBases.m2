@@ -49,7 +49,7 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "installBasisElements", "oiOrbit",
+        "makeFreeOIModule", "installBasisElements", "getGenerators", "getWidth", "getRank", "oiOrbit",
 
         -- From OIGB.m2
         "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",
@@ -246,6 +246,10 @@ makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
         basisKeys => new MutableHashTable}
 )
 
+-- Get the rank of a FreeOIModule
+getRank = method(TypicalValue => ZZ)
+getRank FreeOIModule := F -> #F.genWidths
+
 -- Check if a FreeOIModule is zero
 isZero = method(TypicalValue => Boolean)
 isZero FreeOIModule := F -> F.genWidths === {}
@@ -362,6 +366,10 @@ getGenerator := (F, i) -> (
     key := (makeOIMap(n, toList(1..n)), i + 1);
     makeSingle(M, key, 1_(getAlgebraInWidth(F.polyOIAlg, n)))
 )
+
+-- Get the generators of a FreeOIModule
+getGenerators = method(TypicalValue => List)
+getGenerators FreeOIModule := F -> for i to #F.genWidths - 1 list getGenerator(F, i)
 
 -- Get the keyed lead term of a VectorInWidth
 keyedLeadTerm := v -> (
@@ -784,7 +792,7 @@ oiGB List := opts -> L -> (
 
     -- Throw out any repeated or zero elements
     ret := unique for elt in L list if isZero elt then continue else elt;
-    if #ret === 0 then error "expected a nonempty List of nonzero elements";
+    if #ret === 0 then error "expected a nonempty list of nonzero elements";
 
     encountered := new List;
     totalAdded := 0;
@@ -843,7 +851,7 @@ minimizeOIGB List := opts -> G -> (
 
     -- Throw out any repeated or zero elements
     G = unique for elt in G list if isZero elt then continue else elt;
-    if #G === 0 then error "expected a nonempty List of nonzero elements";
+    if #G === 0 then error "expected a nonempty list of nonzero elements";
 
     nonRedundant := new List;
     currentBasis := unique apply(G, makeMonic); -- unique is used again because collisions may happen after makeMonic
@@ -907,7 +915,7 @@ isOIGB List := opts -> L -> (
 
     -- Throw out any repeated or zero elements
     L = unique for elt in L list if isZero elt then continue else elt;
-    if #L === 0 then error "expected a nonempty List of nonzero elements";
+    if #L === 0 then error "expected a nonempty list of nonzero elements";
 
     encountered := new List;
     oipairs := oiPairs(L, opts.Verbose);
@@ -946,7 +954,7 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
 
     -- Throw out any repeated or zero elements
     L = unique for elt in L list if isZero elt then continue else elt;
-    if #L === 0 then error "expected a nonempty List of nonzero elements";
+    if #L === 0 then error "expected a nonempty list of nonzero elements";
 
     fmod := getFreeOIModule L#0;
     shifts := for elt in L list -degree elt;
@@ -1246,7 +1254,45 @@ beginDocumentation()
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
+-- TEST 0
+TEST ///
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,1,2}, P);
+installBasisElements(F, 1);
+installBasisElements(F, 2);
+use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
+use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
+B = oiGB {b1, b2};
+assert(#B === 3);
+assert isOIGB B
+///
 
+-- TEST 1
+TEST ///
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,1}, P);
+installBasisElements(F, 2);
+b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+B = oiGB {b};
+assert(#B === 2);
+C = oiSyz(B, d);
+assert(#C === 3);
+assert isOIGB C
+///
+
+-- TEST 2
+TEST ///
+restart
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,2}, P);
+installBasisElements(F, 3);
+b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
+C = oiRes({b}, 2);
+assert(getRank C_0 === 1);
+assert(getRank C_1 === 2);
+assert(apply(getGenerators C_0, getWidth) === {3});
+assert(apply(getGenerators C_1, getWidth) === {5, 5})
+///
 
 end
 
@@ -1286,8 +1332,7 @@ P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1}, P);
 installBasisElements(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},1);
-time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 3 hours (minimal ranks 1, 2, 5, 9, 14)
--- time C = oiRes({b}, 6, Verbose => true) -- Takes my laptop 27 hours (minimal ranks 1, 2, 5, 9, 14, 20)
+time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 30 minutes (minimal ranks 1, 2, 5, 9, 14)
 
 -- Res example 4: single quadratic in width 3
 -- Comment: compare with res example 1
@@ -1296,7 +1341,7 @@ P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
 installBasisElements(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
-time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 40 minutes (minimal ranks 1, 2, 4, 7, 11)
+time C = oiRes({b}, 5, Verbose => true)
 
 -- OI-ideal example
 -- Comment: 2x2 minors with a gap of at least 1

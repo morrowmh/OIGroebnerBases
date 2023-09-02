@@ -14,7 +14,7 @@ oiGB List := opts -> L -> (
 
     -- Throw out any repeated or zero elements
     ret := unique for elt in L list if isZero elt then continue else elt;
-    if #ret === 0 then error "expected a nonempty List of nonzero elements";
+    if #ret === 0 then error "expected a nonempty list of nonzero elements";
 
     encountered := new List;
     totalAdded := 0;
@@ -73,7 +73,7 @@ minimizeOIGB List := opts -> G -> (
 
     -- Throw out any repeated or zero elements
     G = unique for elt in G list if isZero elt then continue else elt;
-    if #G === 0 then error "expected a nonempty List of nonzero elements";
+    if #G === 0 then error "expected a nonempty list of nonzero elements";
 
     nonRedundant := new List;
     currentBasis := unique apply(G, makeMonic); -- unique is used again because collisions may happen after makeMonic
@@ -137,7 +137,7 @@ isOIGB List := opts -> L -> (
 
     -- Throw out any repeated or zero elements
     L = unique for elt in L list if isZero elt then continue else elt;
-    if #L === 0 then error "expected a nonempty List of nonzero elements";
+    if #L === 0 then error "expected a nonempty list of nonzero elements";
 
     encountered := new List;
     oipairs := oiPairs(L, opts.Verbose);

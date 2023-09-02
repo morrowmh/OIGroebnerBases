@@ -19,7 +19,7 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "installBasisElements", "oiOrbit",
+        "makeFreeOIModule", "installBasisElements", "getGenerators", "getWidth", "getRank", "oiOrbit",
 
         -- From OIGB.m2
         "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",
