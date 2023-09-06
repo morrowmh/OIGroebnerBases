@@ -1129,8 +1129,8 @@ doc ///
         Code
             UL {
                 {TT "Strategy => ", TT TO FastNonminimal, " for no post-processing of the basis"},
-                {TT "Strategy => ", TT TO Minimize, " to minimize the basis after it is computed, see ", TO minimizeOIGB},
-                {TT "Strategy => ", TT TO Reduce, " to reduce the basis after it is computed, see ", TO reduceOIGB}
+                {TT "Strategy => ", TT TO Minimize, " to minimize the basis after it is computed; see ", TO minimizeOIGB},
+                {TT "Strategy => ", TT TO Reduce, " to reduce the basis after it is computed; see ", TO reduceOIGB}
             }
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
@@ -1246,7 +1246,7 @@ doc ///
         :List
     Description
         Text
-            Given a Gröbner basis @TT "G"@ for a submodule $\mathbf{M}$ of a free OI-module $\mathbf{F}$, this method computes a Gröbner basis for the syzygy module of $\mathbf{M}$ with respect to the Schreyer order induced by $G$; see @TO OIMonomialOrder@.
+            Given a Gröbner basis @TT "G"@ for a submodule $\mathbf{M}$ of a free OI-module $\mathbf{F}$, this method computes a Gröbner basis for the syzygy module of $\mathbf{M}$ with respect to the Schreyer order induced by @TT "G"@; see @TO OIMonomialOrder@.
 
             The new Gröbner basis lives in an appropriate free OI-module with basis symbol @TT "d"@.
 
@@ -1256,8 +1256,8 @@ doc ///
         Code
             UL {
                 {TT "Strategy => ", TT TO FastNonminimal, " for no post-processing of the basis"},
-                {TT "Strategy => ", TT TO Minimize, " to minimize the basis after it is computed, see ", TO minimizeOIGB},
-                {TT "Strategy => ", TT TO Reduce, " to reduce the basis after it is computed, see ", TO reduceOIGB}
+                {TT "Strategy => ", TT TO Minimize, " to minimize the basis after it is computed; see ", TO minimizeOIGB},
+                {TT "Strategy => ", TT TO Reduce, " to reduce the basis after it is computed; see ", TO reduceOIGB}
             }
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
@@ -1380,8 +1380,8 @@ doc ///
         Code
             UL {
                 {TT "Strategy => ", TT TO FastNonminimal, " for no post-processing of the Gröbner basis computed at each step"},
-                {TT "Strategy => ", TT TO Minimize, " to minimize the Gröbner basis after it is computed at each step, see ", TO minimizeOIGB},
-                {TT "Strategy => ", TT TO Reduce, " to reduce the Gröbner basis after it is computed at each step, see ", TO reduceOIGB}
+                {TT "Strategy => ", TT TO Minimize, " to minimize the Gröbner basis after it is computed at each step; see ", TO minimizeOIGB},
+                {TT "Strategy => ", TT TO Reduce, " to reduce the Gröbner basis after it is computed at each step; see ", TO reduceOIGB}
             }
         Text
             The @TO TopNonminimal@ option must be either @TT "true"@ or @TT "false"@, depending on whether one wants the Gröbner basis in homological degree $n-1$ to be minimized. Therefore, use @TT "TopNonminimal => true"@ for no minimization of the basis in degree $n-1$.
