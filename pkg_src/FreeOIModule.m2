@@ -15,24 +15,24 @@ net FreeOIModule := F -> (
     "Monomial order: " | monOrderNet
 )
 
-makeFreeOIModule = method(TypicalValue => FreeOIModule, Options => {DegreeShifts => null, MonomialOrder => Lex})
+makeFreeOIModule = method(TypicalValue => FreeOIModule, Options => {DegreeShifts => null, OIMonomialOrder => Lex})
 makeFreeOIModule(Symbol, List, PolynomialOIAlgebra) := opts -> (e, W, P) -> (
     shifts := if opts.DegreeShifts === null then toList(#W : 0)
     else if instance(opts.DegreeShifts, List) and #opts.DegreeShifts === #W then opts.DegreeShifts
     else error "invalid DegreeShifts option";
 
     -- Validate the monomial order
-    if not opts.MonomialOrder === Lex and not (
-        instance(opts.MonomialOrder, List) and 
-        W === apply(opts.MonomialOrder, getWidth) and 
-        #set apply(opts.MonomialOrder, getFreeOIModule) == 1) then error "invalid monomial order";
+    if not opts.OIMonomialOrder === Lex and not (
+        instance(opts.OIMonomialOrder, List) and 
+        W === apply(opts.OIMonomialOrder, getWidth) and 
+        #set apply(opts.OIMonomialOrder, getFreeOIModule) == 1) then error "invalid monomial order";
 
     new FreeOIModule from {
         basisSym => e,
         genWidths => W,
         degShifts => shifts,
         polyOIAlg => P,
-        monOrder => opts.MonomialOrder,
+        monOrder => opts.OIMonomialOrder,
         modules => new MutableHashTable,
         maps => new MutableHashTable,
         basisKeys => new MutableHashTable}

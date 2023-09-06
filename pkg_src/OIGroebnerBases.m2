@@ -16,7 +16,7 @@ newPackage("OIGroebnerBases",
     Date => "TBD",
     Keywords => { "Commutative Algebra" },
     Authors => {
-        { Name => "Michael Morrow", HomePage => "https://michaelhmorrow.com", Email => "michaelhmorrow98@gmail.com" }
+        { Name => "Michael Morrow", HomePage => "https://michaelmorrow.me", Email => "michaelhmorrow98@gmail.com" }
     },
     DebuggingMode => true,
     HomePage => "https://github.com/morrowmh/OIGroebnerBases"

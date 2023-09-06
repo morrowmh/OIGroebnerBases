@@ -67,7 +67,7 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
     -- Append the last term in the sequence
     shifts := for elt in currentGB list -degree elt;
     widths := for elt in currentGB list getWidth elt;
-    modulesMut#count = makeFreeOIModule(currentSymbol, widths, groundFreeOIMod.polyOIAlg, DegreeShifts => shifts, MonomialOrder => currentGB);
+    modulesMut#count = makeFreeOIModule(currentSymbol, widths, groundFreeOIMod.polyOIAlg, DegreeShifts => shifts, OIMonomialOrder => currentGB);
     ddMut#count = new FreeOIModuleMap from {srcMod => modulesMut#count, targMod => if count === 0 then groundFreeOIMod else modulesMut#(count - 1), genImages => currentGB};
 
     -- Cap the sequence with zeros

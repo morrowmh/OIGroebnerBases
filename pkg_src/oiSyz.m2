@@ -19,7 +19,7 @@ oiSyz(List, Symbol) := opts -> (L, d) -> (
     fmod := getFreeOIModule L#0;
     shifts := for elt in L list -degree elt;
     widths := for elt in L list getWidth elt;
-    G := makeFreeOIModule(d, widths, fmod.polyOIAlg, DegreeShifts => shifts, MonomialOrder => L);
+    G := makeFreeOIModule(d, widths, fmod.polyOIAlg, DegreeShifts => shifts, OIMonomialOrder => L);
 
     oipairs := oiPairs(L, opts.Verbose);
     if opts.Verbose then print "Iterating through critical pairs...";

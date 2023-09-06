@@ -19,7 +19,7 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "installBasisElements", "getGenerators", "getWidth", "getRank", "oiOrbit",
+        "makeFreeOIModule", "installBasisElements", "isZero", "getGenerators", "getWidth", "getFreeOIModule", "getRank", "oiOrbit",
 
         -- From OIGB.m2
         "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",
@@ -35,7 +35,7 @@ export {
         "VariableOrder",
 
         -- From FreeOIModule.m2
-        "DegreeShifts",
+        "DegreeShifts", "OIMonomialOrder",
 
         -- From OIResolution.m2
         "TopNonminimal"
