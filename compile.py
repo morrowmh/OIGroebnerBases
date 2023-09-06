@@ -26,5 +26,5 @@ while True:
     if lines[i].startswith("end"): break
 
 # Output final package
-with open(pkg_name + ".m2", "w") as output:
+with open(pkg_name + "_debug.m2", "w") as output:
     output.writelines(lines)
