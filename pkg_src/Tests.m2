@@ -26,14 +26,33 @@ assert isOIGB C
 
 -- TEST 2
 TEST ///
-restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,2}, P);
 installBasisElements(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
 C = oiRes({b}, 2);
+assert isComplex C;
 assert(getRank C_0 === 1);
 assert(getRank C_1 === 2);
 assert(apply(getGenerators C_0, getWidth) === {3});
 assert(apply(getGenerators C_1, getWidth) === {5, 5})
+///
+
+-- TEST 3
+TEST ///
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,1}, P);
+installBasisElements(F, 2);
+b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+C = oiRes({b}, 3);
+assert isComplex C;
+assert isHomogeneous(C.dd_0);
+assert isHomogeneous(C.dd_1);
+assert isHomogeneous(C.dd_2);
+assert(getRank C_0 === 1);
+assert(getRank C_1 === 1);
+assert(getRank C_2 === 2);
+assert(apply(getGenerators C_0, getWidth) === {2});
+assert(apply(getGenerators C_1, getWidth) === {4});
+assert(apply(getGenerators C_2, getWidth) === {5,5})
 ///

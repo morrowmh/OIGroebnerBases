@@ -18,6 +18,7 @@ newPackage("OIGroebnerBases",
     Authors => {
         { Name => "Michael Morrow", HomePage => "https://michaelmorrow.me", Email => "michaelhmorrow98@gmail.com" }
     },
+    DebuggingMode => true,
     HomePage => "https://github.com/morrowmh/OIGroebnerBases"
 )
 
@@ -28,26 +29,63 @@ newPackage("OIGroebnerBases",
 --------------------------------------------------------------------------------
 
 export {
+    -- Types
+        -- From PolynomialOIAlgebra.m2
         "PolynomialOIAlgebra",
+
+        -- From FreeOIModule.m2
         "FreeOIModule", "ModuleInWidth", "VectorInWidth", "FreeOIModuleMap",
+
+        -- From OIResolution.m2
         "OIResolution",
+    
+    -- Keys
+        -- From PolynomialOIAlgebra.m2
         "ColUpRowUp", "ColUpRowDown", "ColDownRowUp", "ColDownRowDown",
         "RowUpColUp", "RowUpColDown", "RowDownColUp", "RowDownColDown",
+    
+    -- Methods
+        -- From PolynomialOIAlgebra.m2
         "makePolynomialOIAlgebra",
+
+        -- From FreeOIModule.m2
         "makeFreeOIModule", "installBasisElements", "isZero", "getGenerators", "getWidth", "getFreeOIModule", "getRank", "oiOrbit",
+
+        -- From OIGB.m2
         "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",
+    
+        -- From oiSyz.m2
         "oiSyz",
+
+        -- From OIResolution.m2
         "oiRes", "isComplex",
+    
+    -- Options
+        -- From PolynomialOIAlgebra.m2
         "VariableOrder",
+
+        -- From FreeOIModule.m2
         "DegreeShifts", "OIMonomialOrder",
+
+        -- From OIResolution.m2
         "TopNonminimal"
 }
 
 scan({
+    -- Keys
+        -- From OIMap.2
         targWidth, img,
+
+        -- From PolynomialOIAlgebra.m2
         varRows, varSym, baseField, varOrder, algebras, maps,
+
+        -- From FreeOIModule.m2
         basisSym, genWidths, degShifts, polyOIAlg, monOrder, modules, basisKeys, wid, rawMod, freeOIMod, key, vec, oiMap, srcMod, targMod, genImages,
+
+        -- From Division.m2
         quo, rem, divTuples,
+
+        -- From OIPair.m2
         map0, idx0, im0, map1, idx1, im1
 }, protect)
 
@@ -2678,16 +2716,35 @@ assert isOIGB C
 
 -- TEST 2
 TEST ///
-restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,2}, P);
 installBasisElements(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
 C = oiRes({b}, 2);
+assert isComplex C;
 assert(getRank C_0 === 1);
 assert(getRank C_1 === 2);
 assert(apply(getGenerators C_0, getWidth) === {3});
 assert(apply(getGenerators C_1, getWidth) === {5, 5})
+///
+
+-- TEST 3
+TEST ///
+P = makePolynomialOIAlgebra(2, x, QQ);
+F = makeFreeOIModule(e, {1,1}, P);
+installBasisElements(F, 2);
+b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+C = oiRes({b}, 3);
+assert isComplex C;
+assert isHomogeneous(C.dd_0);
+assert isHomogeneous(C.dd_1);
+assert isHomogeneous(C.dd_2);
+assert(getRank C_0 === 1);
+assert(getRank C_1 === 1);
+assert(getRank C_2 === 2);
+assert(apply(getGenerators C_0, getWidth) === {2});
+assert(apply(getGenerators C_1, getWidth) === {4});
+assert(apply(getGenerators C_2, getWidth) === {5,5})
 ///
 
 end
