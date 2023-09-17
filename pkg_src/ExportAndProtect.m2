@@ -28,7 +28,7 @@ export {
         "oiSyz",
 
         -- From OIResolution.m2
-        "oiRes", "isComplex",
+        "ranks", "oiRes", "isComplex",
     
     -- Options
         -- From PolynomialOIAlgebra.m2

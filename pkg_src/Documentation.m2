@@ -81,6 +81,7 @@ doc ///
         :OI-resolutions
         OIResolution
         oiRes
+        ranks
         TopNonminimal
         isComplex
         (describe,OIResolution)
@@ -1390,7 +1391,31 @@ doc ///
             F = makeFreeOIModule(e, {1,1}, P);
             installBasisElements(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
-            time C = oiRes({b}, 2, TopNonminimal => true)
+            time oiRes({b}, 2, TopNonminimal => true)
+///
+
+doc ///
+    Key
+        ranks
+        (ranks,OIResolution)
+    Headline
+        display the ranks of an OI-resolution
+    Usage
+        ranks C
+    Inputs
+        C:OIResolution
+    Outputs
+        :Net
+    Description
+        Text
+            Given an OI-resolution $C$, this method displays the ranks of the modules in $C$.
+        Example
+            P = makePolynomialOIAlgebra(2, x, QQ);
+            F = makeFreeOIModule(e, {1,1}, P);
+            installBasisElements(F, 2);
+            b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+            C = oiRes({b}, 2)
+            ranks C
 ///
 
 doc ///
@@ -1406,7 +1431,7 @@ doc ///
             F = makeFreeOIModule(e, {1,1}, P);
             installBasisElements(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
-            time C = oiRes({b}, 2, TopNonminimal => true)
+            time oiRes({b}, 2, TopNonminimal => true)
 ///
 
 doc ///
