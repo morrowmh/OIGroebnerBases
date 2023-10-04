@@ -79,8 +79,8 @@ end
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1,2}, P);
-installBasisElements(F, 1);
-installBasisElements(F, 2);
+installGeneratorsInWidth(F, 1);
+installGeneratorsInWidth(F, 2);
 use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
 use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
 time B = oiGB({b1, b2}, Verbose => true)
@@ -90,7 +90,7 @@ time B = oiGB({b1, b2}, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,2}, P);
-installBasisElements(F, 3);
+installGeneratorsInWidth(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
 time C = oiRes({b}, 2, Verbose => true)
 
@@ -99,7 +99,7 @@ time C = oiRes({b}, 2, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
-installBasisElements(F, 2);
+installGeneratorsInWidth(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
 time C = oiRes({b}, 4, Verbose => true)
 
@@ -108,7 +108,7 @@ time C = oiRes({b}, 4, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1}, P);
-installBasisElements(F, 2);
+installGeneratorsInWidth(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},1);
 time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 30 minutes (minimal ranks 1, 2, 5, 9, 14)
 
@@ -117,7 +117,7 @@ time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 30 minutes (minimal r
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
-installBasisElements(F, 3);
+installGeneratorsInWidth(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
 time C = oiRes({b}, 5, Verbose => true)
 
@@ -126,7 +126,7 @@ time C = oiRes({b}, 5, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {0}, P);
-installBasisElements(F, 3);
+installGeneratorsInWidth(F, 3);
 b = (x_(1,1)*x_(2,3)-x_(2,1)*x_(1,3))*e_(3,{},1);
 time C = oiRes({b}, 2, Verbose => true)
 
@@ -135,7 +135,7 @@ time C = oiRes({b}, 2, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
-installBasisElements(F, 3);
+installGeneratorsInWidth(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{3},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
 time C = oiRes({b}, 3, Verbose => true)
 ranks C

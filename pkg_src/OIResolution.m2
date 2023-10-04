@@ -147,12 +147,12 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
                         if not single.key#1 === targBasisPos + 1 then continue;
 
                         modMap := getInducedModuleMap(srcFreeOIMod, single.key#0);
-                        basisElt := getGenerator(srcFreeOIMod, srcBasisPos);
+                        basisElt := getBasisElement(srcFreeOIMod, srcBasisPos);
                         thingToSubtract = thingToSubtract + single.vec#(single.key) * modMap basisElt
                     );
 
                     -- Calculate the new image
-                    basisElt := getGenerator(srcFreeOIMod, i);
+                    basisElt := getBasisElement(srcFreeOIMod, i);
                     newGenImage0 := ddMap(basisElt - lift(1 // unitSingle.vec#(unitSingle.key), srcFreeOIMod.polyOIAlg.baseField) * thingToSubtract);
                     M := getModuleInWidth(newTargFreeOIMod, getWidth newGenImage0);
                     newGenImage := makeZero M;
@@ -212,10 +212,7 @@ isComplex OIResolution := opts -> C -> (
         modMap1 := C.dd#i;
         if isZero modMap0 or isZero modMap1 then continue;
 
-        srcFreeOIMod := modMap1.srcMod;
-        basisElts := for i to #srcFreeOIMod.genWidths - 1 list getGenerator(srcFreeOIMod, i);
-
-        for basisElt in basisElts do (
+        for basisElt in getBasisElements modMap1.srcMod do (
             result := modMap0 modMap1 basisElt;
 
             if opts.Verbose then print(net basisElt | " maps to " | net result);

@@ -49,7 +49,7 @@ export {
         "makePolynomialOIAlgebra",
 
         -- From FreeOIModule.m2
-        "makeFreeOIModule", "installBasisElements", "isZero", "getGenerators", "getWidth", "getFreeOIModule", "getRank", "oiOrbit",
+        "makeFreeOIModule", "installGeneratorsInWidth", "isZero", "getBasisElements", "getWidth", "getFreeOIModule", "getSchreyerMap", "getRank", "oiOrbit",
 
         -- From OIGB.m2
         "oiGB", "minimizeOIGB", "reduceOIGB", "isOIGB",
@@ -217,7 +217,7 @@ net FreeOIModule := F -> (
     else error "invalid monomial order";
 
     "Basis symbol: " | net F.basisSym ||
-    "Generator widths: " | net F.genWidths ||
+    "Basis element widths: " | net F.genWidths ||
     "Degree shifts: " | net F.degShifts ||
     "Polynomial OI-algebra: " | toString F.polyOIAlg ||
     "Monomial order: " | monOrderNet
@@ -328,9 +328,9 @@ makeZero := M -> (
     makeVectorInWidth(M, A)
 )
 
--- Install the basis elements in a given width
-installBasisElements = method();
-installBasisElements(FreeOIModule, ZZ) := (F, n) -> (
+-- Install the generators in a given width
+installGeneratorsInWidth = method();
+installGeneratorsInWidth(FreeOIModule, ZZ) := (F, n) -> (
     M := getModuleInWidth(F, n);
     K := getBasisKeys(F, n);
     
@@ -357,19 +357,19 @@ keyedTerms := v -> flatten for key in keys v list
 keyedSingles := v -> flatten for key in keys v list
     if zero v#key then continue else makeKeyedVectorInWidth(class v, key, v#key)
 
--- Get the ith generator of a FreeOIModule
+-- Get the ith basis element of a FreeOIModule
 -- Args: F = FreeOIModule, i = ZZ
 -- Comment: expects 0 <= i <= #F.genWidths - 1
-getGenerator := (F, i) -> (
+getBasisElement := (F, i) -> (
     n := F.genWidths#i;
     M := getModuleInWidth(F, n);
     key := (makeOIMap(n, toList(1..n)), i + 1);
     makeSingle(M, key, 1_(getAlgebraInWidth(F.polyOIAlg, n)))
 )
 
--- Get the generators of a FreeOIModule
-getGenerators = method(TypicalValue => List)
-getGenerators FreeOIModule := F -> for i to #F.genWidths - 1 list getGenerator(F, i)
+-- Get the basis elements of a FreeOIModule
+getBasisElements = method(TypicalValue => List)
+getBasisElements FreeOIModule := F -> for i to #F.genWidths - 1 list getBasisElement(F, i)
 
 -- Get the keyed lead term of a VectorInWidth
 keyedLeadTerm := v -> (
@@ -571,7 +571,7 @@ InducedModuleMap VectorInWidth := (f, v) -> (
 -- Should be of the form {srcMod => FreeOIModule, targMod => FreeOIModule, genImages => List}
 FreeOIModuleMap = new Type of HashTable
 
-net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Generator images: " | net f.genImages
+net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Basis element images: " | net f.genImages
 
 -- Check if a FreeOIModuleMap is zero
 isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(f.genImages, isZero) === set {true}
@@ -597,7 +597,10 @@ isHomogeneous FreeOIModuleMap := f -> (
 
     for elt in f.genImages do if not isHomogeneous elt then return false;
 
-    -f.srcMod.degShifts === apply(f.genImages, degree)
+    -- -f.srcMod.degShifts === apply(f.genImages, degree)
+    for i to #f.genImages - 1 do if not (isZero(f.genImages#i) or -f.srcMod.degShifts#i === degree(f.genImages#i)) then return false;
+
+    true
 )
 
 -- Compute the n-orbit of a List of VectorInWidth objects
@@ -606,6 +609,12 @@ oiOrbit(List, ZZ) := (L, n) -> (
     if n < 0 then error "expected a nonnegative integer";
 
     unique flatten for elt in L list for oimap in getOIMaps(getWidth elt, n) list (getInducedModuleMap(getFreeOIModule elt, oimap)) elt
+)
+
+-- Get the Schreyer map of a FreeOIModule object, if it exists
+getSchreyerMap = method(TypicalValue => FreeOIModuleMap)
+getSchreyerMap FreeOIModule := F -> if not instance(F.monOrder, List) then error "invalid monomial order" else (
+    new FreeOIModuleMap from {srcMod => F, targMod => getFreeOIModule(F.monOrder#0), genImages => F.monOrder}
 )
 
 -- Division function for KeyedVectorInWidth terms
@@ -1162,12 +1171,12 @@ oiRes(List, ZZ) := opts -> (L, n) -> (
                         if not single.key#1 === targBasisPos + 1 then continue;
 
                         modMap := getInducedModuleMap(srcFreeOIMod, single.key#0);
-                        basisElt := getGenerator(srcFreeOIMod, srcBasisPos);
+                        basisElt := getBasisElement(srcFreeOIMod, srcBasisPos);
                         thingToSubtract = thingToSubtract + single.vec#(single.key) * modMap basisElt
                     );
 
                     -- Calculate the new image
-                    basisElt := getGenerator(srcFreeOIMod, i);
+                    basisElt := getBasisElement(srcFreeOIMod, i);
                     newGenImage0 := ddMap(basisElt - lift(1 // unitSingle.vec#(unitSingle.key), srcFreeOIMod.polyOIAlg.baseField) * thingToSubtract);
                     M := getModuleInWidth(newTargFreeOIMod, getWidth newGenImage0);
                     newGenImage := makeZero M;
@@ -1227,10 +1236,7 @@ isComplex OIResolution := opts -> C -> (
         modMap1 := C.dd#i;
         if isZero modMap0 or isZero modMap1 then continue;
 
-        srcFreeOIMod := modMap1.srcMod;
-        basisElts := for i to #srcFreeOIMod.genWidths - 1 list getGenerator(srcFreeOIMod, i);
-
-        for basisElt in basisElts do (
+        for basisElt in getBasisElements modMap1.srcMod do (
             result := modMap0 modMap1 basisElt;
 
             if opts.Verbose then print(net basisElt | " maps to " | net result);
@@ -1297,10 +1303,11 @@ doc ///
         makeFreeOIModule
         DegreeShifts
         OIMonomialOrder
-        installBasisElements
+        installGeneratorsInWidth
         isZero
-        getGenerators
+        getBasisElements
         getFreeOIModule
+        getSchreyerMap
         getWidth
         getRank
         oiOrbit
@@ -1549,7 +1556,7 @@ doc ///
         the class of all free OI-modules over a polynomial OI-algebra
     Description
         Text
-            This type implements free OI-modules over polynomial OI-algebras. To make a @TT "FreeOIModule"@ object, use @TO makeFreeOIModule@. To get the generators and rank of a free OI-module, use @TO getGenerators@ and @TO getRank@ respectively. To install the basis elements of a free OI-module in a specified width, use @TO installBasisElements@.
+            This type implements free OI-modules over polynomial OI-algebras. To make a @TT "FreeOIModule"@ object, use @TO makeFreeOIModule@. To get the basis elements and rank of a free OI-module, use @TO getBasisElements@ and @TO getRank@ respectively. To install the generators of a component of a free OI-module in a specified width, use @TO installGeneratorsInWidth@.
 
             Each @TT "FreeOIModule"@ object comes equipped with either the @TO Lex@ monomial order induced by the monomial order on its underlying polynomial OI-algebra, or the Schreyer monomial order induced by another free OI-module; see @TO makeFreeOIModule@ and @TO OIMonomialOrder@.
         Example
@@ -1572,11 +1579,11 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 3);
             b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
             C = oiRes({b}, 2)
             phi = C.dd_1
-            G = getGenerators C_1
+            G = getBasisElements C_1
             phi G#0
             phi G#1
 ///
@@ -1585,7 +1592,7 @@ doc ///
     Key
         ModuleInWidth
     Headline
-        the class of all modules that appear as a widthwise component of a free OI-module
+        the class of all modules that appear as a component of a free OI-module
     Description
         Text
             The width $n$ component of a free OI-module is implemented as a @TT "ModuleInWidth"@ object. To obtain a @TT "ModuleInWidth"@ object, one restricts a given free OI-module to a specified width using @TO (symbol _,FreeOIModule,ZZ)@, as seen in the example below.
@@ -1602,11 +1609,11 @@ doc ///
         the class of all elements of a free OI-module
     Description
         Text
-            An element of a free OI-module $\mathbf{F}$ is defined to be an element of $\mathbf{F}_n$ for some integer $n\geq0$. Such an element is implemented as a @TT "VectorInWidth"@ object. One typically makes @TT "VectorInWidth"@ objects by defining a @TO FreeOIModule@ object, calling @TO installBasisElements@, and then manipulating the generators; see below for an example.
+            An element of a free OI-module $\mathbf{F}$ is defined to be an element of $\mathbf{F}_n$ for some integer $n\geq0$. Such an element is implemented as a @TT "VectorInWidth"@ object. One typically makes @TT "VectorInWidth"@ objects by defining a @TO FreeOIModule@ object, calling @TO installGeneratorsInWidth@, and then manipulating the generators; see below for an example.
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)
             instance(b, VectorInWidth)
 ///
@@ -1643,7 +1650,7 @@ doc ///
             @HEADER2 "Example 2: Schreyer"@
         Example
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2);
             G = makeFreeOIModule(d, {2}, P, DegreeShifts => {-degree b}, OIMonomialOrder => {b})
 ///
@@ -1666,18 +1673,18 @@ doc ///
         Text
             @HEADER2 "Example 1: no shifts"@
 
-            The free OI-module $\mathbf{F}^{\text{OI},1}\oplus\mathbf{F}^{\text{OI},2}$ has its generators in degree zero.
+            The free OI-module $\mathbf{F}^{\text{OI},1}\oplus\mathbf{F}^{\text{OI},2}$ has its basis elements in degree zero.
         Example
             P = makePolynomialOIAlgebra(1, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P)
-            apply(getGenerators F, degree)
+            apply(getBasisElements F, degree)
         Text
             @HEADER2 "Example 2: nontrivial shifts"@
             
-            The free OI-module $\mathbf{F}^{\text{OI},1}(-3)\oplus\mathbf{F}^{\text{OI},2}(-4)$ has its generators in degrees $3$ and $4$.
+            The free OI-module $\mathbf{F}^{\text{OI},1}(-3)\oplus\mathbf{F}^{\text{OI},2}(-4)$ has its basis elements in degrees $3$ and $4$.
         Example
             F = makeFreeOIModule(e, {1,2}, P, DegreeShifts => {-3,-4})
-            apply(getGenerators F, degree)
+            apply(getBasisElements F, degree)
 ///
 
 doc ///
@@ -1703,22 +1710,22 @@ doc ///
 
 doc ///
     Key
-        installBasisElements
-        (installBasisElements,FreeOIModule,ZZ)
+        installGeneratorsInWidth
+        (installGeneratorsInWidth,FreeOIModule,ZZ)
     Headline
-        install basis elements in a specified width of a free OI-module
+        install the generators for a component of a free OI-module in a specified width
     Usage
-        installBasisElements(F, n)
+        installGeneratorsInWidth(F, n)
     Inputs
         F:FreeOIModule
         n:ZZ
     Description
         Text
-            This method assigns the basis elements of the width @TT "n"@ component of @TT "F"@ to the appropriate @TO IndexedVariable@ corresponding to the basis symbol of @TT "F"@.
+            This method assigns the generators of the width @TT "n"@ component of @TT "F"@ to the appropriate @TO IndexedVariable@ corresponding to the basis symbol of @TT "F"@.
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             e_(2,{1},1)
             e_(2,{1},2)
             e_(2,{2},1)
@@ -1728,23 +1735,23 @@ doc ///
 
 doc ///
     Key
-        getGenerators
-        (getGenerators,FreeOIModule)
+        getBasisElements
+        (getBasisElements,FreeOIModule)
     Headline
-        get the generators of a free OI-module
+        get the basis elements of a free OI-module
     Usage
-        getGenerators F
+        getBasisElements F
     Inputs
         F:FreeOIModule
     Outputs
         :List
     Description
         Text
-            Returns the generators of a free OI-module.
+            Returns the basis elements of a free OI-module.
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            getGenerators F
+            getBasisElements F
 ///
 
 doc ///
@@ -1765,9 +1772,37 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1,2}, P);
-            installBasisElements(F, 4);
+            installGeneratorsInWidth(F, 4);
             f = x_(2,4)*e_(4,{3},1)+x_(1,3)^2*e_(4,{2,4},3)
             getFreeOIModule f
+///
+
+doc ///
+    Key
+        getSchreyerMap
+        (getSchreyerMap,FreeOIModule)
+    Headline
+        get the Schreyer map of a free OI-module if it exists
+    Usage
+        getSchreyerMap H
+    Inputs
+        H:FreeOIModule
+    Outputs
+        :FreeOIModuleMap
+    Description
+        Text
+            Let $G'$ be a non-empty Gröbner basis for the syzygy module of a finitely generated submodule $\mathbf{M}$ of a free OI-module $\mathbf{F}$ computed using @TO oiSyz@. Let @TT "H"@ be the free OI-module obtained by applying @TO getFreeOIModule@ to any element of $G'$. This method returns the canonical surjective map from @TT "H"@ to $\mathbf{M}$.
+        Example
+            P = makePolynomialOIAlgebra(2, x, QQ);
+            F = makeFreeOIModule(e, {1,1}, P);
+            installGeneratorsInWidth(F, 2);
+            b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+            G = oiGB {b}
+            G' = oiSyz(G, d)
+            H = getFreeOIModule G'#0
+            getSchreyerMap H
+    Caveat
+        If $G'$ is empty or if @TT "H"@ does not have a Schreyer order, this method will throw an error.
 ///
 
 doc ///
@@ -1788,7 +1823,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1,2}, P);
-            installBasisElements(F, 4);
+            installGeneratorsInWidth(F, 4);
             f = x_(2,4)*e_(4,{3},1)+x_(1,3)^2*e_(4,{2,4},3)
             getWidth f
 ///
@@ -1833,7 +1868,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)
             oiOrbit({b}, 4)
 ///
@@ -1856,11 +1891,11 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 3);
             b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
             C = oiRes({b}, 2)
             phi = C.dd_1
-            G = getGenerators C_1
+            G = getBasisElements C_1
             phi G#0
             phi G#1
 ///
@@ -1878,7 +1913,7 @@ doc ///
         :Net
     Description
         Text
-            Displays the basis symbol, generator widths, generator shifts, underlying polynomial OI-algebra, and monomial order of a free OI-module.
+            Displays the basis symbol, basis element widths, degree shifts, underlying polynomial OI-algebra, and monomial order of a free OI-module.
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
@@ -1898,11 +1933,11 @@ doc ///
         :Net
     Description
         Text
-            Displays the source module, target module, and generator images of a free OI-module map.
+            Displays the source module, target module, and basis element images of a free OI-module map.
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 3);
             b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
             C = oiRes({b}, 2);
             phi = C.dd_1;
@@ -1946,7 +1981,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             f=x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)-x_(1,2)*e_(2,{2},1)-x_(2,2)*e_(2,{2},2);
             net f
 ///
@@ -1964,7 +1999,7 @@ doc ///
         :String
     Description
         Text
-            Displays the basis symbol, generator widths, and generator shifts of a free OI-module as a string.
+            Displays the basis symbol, basis element widths, and degree shifts of a free OI-module as a string.
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
@@ -2032,7 +2067,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {2}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = e_(2,{1,2},1);
             C = oiRes({b}, 2)
             phi0 = C.dd_0
@@ -2058,7 +2093,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 3);
             f = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2)
             isZero f
             isZero(f-f)
@@ -2081,7 +2116,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 3);
             f = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2)
             degree f
 ///
@@ -2101,8 +2136,8 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1,2}, P);
-            installBasisElements(F, 1);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 1);
+            installGeneratorsInWidth(F, 2);
             use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2)
             use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3)
 ///
@@ -2124,7 +2159,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             f=x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)-x_(1,2)*e_(2,{2},1)-x_(2,2)*e_(2,{2},2)
             terms f
     Caveat
@@ -2148,7 +2183,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             f=x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)-x_(1,2)*e_(2,{2},1)-x_(2,2)*e_(2,{2},2)
             leadTerm f
 ///
@@ -2170,7 +2205,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             f=x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)-x_(1,2)*e_(2,{2},1)-x_(2,2)*e_(2,{2},2)
             leadMonomial f
     Caveat
@@ -2194,7 +2229,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             f=x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)-5*x_(1,2)*e_(2,{2},1)-x_(2,2)*e_(2,{2},2)
             leadCoefficient f
 ///
@@ -2217,7 +2252,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             f=x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)-5*x_(1,2)*e_(2,{2},1)-x_(2,2)*e_(2,{2},2)
             22*f
 ///
@@ -2240,7 +2275,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             f=x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)-5*x_(1,2)*e_(2,{2},1)-x_(2,2)*e_(2,{2},2)
             g = 5*x_(1,2)*e_(2,{2},1)
             f + g
@@ -2264,7 +2299,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             f=x_(1,1)*e_(2,{1},1)+x_(2,1)*e_(2,{1},2)-x_(1,2)*e_(2,{2},1)-x_(2,2)*e_(2,{2},2)
             (x_(1,2)+x_(2,2)^2)*f
 ///
@@ -2286,7 +2321,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 3);
             f = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2)
             -f
 ///
@@ -2309,7 +2344,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 3);
             f = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2)
             g = x_(2,2)*x_(2,1)*e_(3,{1,3},2)+x_(2,1)*e_(3,{1,2},2)
             f - g
@@ -2332,7 +2367,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 3);
             f = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2)
             g = x_(2,2)*x_(2,1)*e_(3,{1,3},2)+x_(2,1)*e_(3,{1,2},2)
             isHomogeneous f
@@ -2356,7 +2391,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,2}, P);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 3);
             b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
             C = oiRes({b}, 2);
             phi = C.dd_1
@@ -2391,8 +2426,8 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1,2}, P);
-            installBasisElements(F, 1);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 1);
+            installGeneratorsInWidth(F, 2);
             use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
             use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
             time oiGB {b1, b2}
@@ -2417,9 +2452,9 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1,2}, P);
-            installBasisElements(F, 1);
-            installBasisElements(F, 2);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 1);
+            installGeneratorsInWidth(F, 2);
+            installGeneratorsInWidth(F, 3);
             use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
             use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
             time B = oiGB {b1, b2}
@@ -2447,8 +2482,8 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1,2}, P);
-            installBasisElements(F, 1);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 1);
+            installGeneratorsInWidth(F, 2);
             use F_1; b1 = x_(2,1)*e_(1,{1},2)+x_(1,1)*e_(1,{1},2);
             use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(1,2)*e_(2,{2},2);
             time B = oiGB({b1, b2}, Strategy => FastNonminimal)
@@ -2475,9 +2510,9 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1,2}, P);
-            installBasisElements(F, 1);
-            installBasisElements(F, 2);
-            installBasisElements(F, 3);
+            installGeneratorsInWidth(F, 1);
+            installGeneratorsInWidth(F, 2);
+            installGeneratorsInWidth(F, 3);
             use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
             use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
             isOIGB {b1, b2}
@@ -2502,9 +2537,9 @@ doc ///
         :List
     Description
         Text
-            Given a Gröbner basis @TT "G"@ for a submodule $\mathbf{M}$ of a free OI-module $\mathbf{F}$, this method computes a Gröbner basis for the syzygy module of $\mathbf{M}$ with respect to the Schreyer order induced by @TT "G"@; see @TO OIMonomialOrder@.
+            Given a non-empty Gröbner basis @TT "G"@ for a submodule $\mathbf{M}$ of a free OI-module $\mathbf{F}$, this method computes a Gröbner basis $G'$ for the syzygy module of $\mathbf{M}$ with respect to the Schreyer order induced by $G$; see @TO OIMonomialOrder@.
 
-            The new Gröbner basis lives in an appropriate free OI-module with basis symbol @TT "d"@.
+            The new Gröbner basis $G'$ lives in an appropriate free OI-module $\mathbf{G}$ with basis symbol @TT "d"@ whose basis elements are mapped onto the elements of $G$ by a canonical surjective map $\varphi:\mathbf{G}\to\mathbf{M}$ (see Definition 4.1 of [1]). Moreover, the degrees of the basis elements of $\mathbf{G}$ are automatically shifted to coincide with the degrees of the elements of $G$, so that $\varphi$ is homogeneous if $G$ consists of homogeneous elements. If $G'$ is not empty, then one obtains $\mathbf{G}$ by applying @TO getFreeOIModule@ to any element of $G'$. One obtains $\varphi$ by using @TO getSchreyerMap@.
 
             The @TO Verbose@ option must be either @TT "true"@ or @TT "false"@, depending on whether one wants debug information printed.
 
@@ -2518,10 +2553,14 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
-            B = oiGB {b}
-            oiSyz(B, d)
+            G = oiGB {b}
+            oiSyz(G, d)
+        Text
+            {\em References:}
+
+            [1] M. Morrow and U. Nagel, {\it Computing Gröbner Bases and Free Resolutions of OI-Modules}, Preprint, arXiv:2303.06725, 2023.
 ///
 
 doc ///
@@ -2535,7 +2574,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
             time C = oiRes({b}, 1)
             C.dd_0
@@ -2558,7 +2597,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
             time C = oiRes({b}, 1);
             describe C
@@ -2577,11 +2616,11 @@ doc ///
         :Net
     Description
         Text
-            Displays the generator widths and degree shifts of the free OI-modules in an OI-resolution.
+            Displays the basis element widths and degree shifts of the free OI-modules in an OI-resolution.
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
             time C = oiRes({b}, 1);
             net C
@@ -2605,7 +2644,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
             time C = oiRes({b}, 1);
             C_0
@@ -2630,7 +2669,7 @@ doc ///
         :OIResolution
     Description
         Text
-            Computes an OI-resolution of the submodule generated by @TT "L"@ out to homological degree @TT "n"@. If @TT "L"@ consists of homogeneous elements, then the resulting resolution will be minimal out to homological degree $n-1$. The @TO Verbose@ option must be either @TT "true"@ or @TT "false"@, depending on whether one wants debug information printed.
+            Computes an OI-resolution of the submodule generated by @TT "L"@ out to homological degree @TT "n"@. If @TT "L"@ consists of homogeneous elements, then the resulting resolution will be graded and minimal out to homological degree $n-1$. The @TO Verbose@ option must be either @TT "true"@ or @TT "false"@, depending on whether one wants debug information printed.
 
             The @TO Strategy@ option has the following permissible values:
         Code
@@ -2644,7 +2683,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
             time oiRes({b}, 2, TopNonminimal => true)
 ///
@@ -2667,7 +2706,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
             C = oiRes({b}, 2)
             ranks C
@@ -2684,7 +2723,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
             time oiRes({b}, 2, TopNonminimal => true)
 ///
@@ -2708,7 +2747,7 @@ doc ///
         Example
             P = makePolynomialOIAlgebra(2, x, QQ);
             F = makeFreeOIModule(e, {1,1}, P);
-            installBasisElements(F, 2);
+            installGeneratorsInWidth(F, 2);
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
             time C = oiRes({b}, 2, TopNonminimal => true)
             isComplex C
@@ -2724,8 +2763,8 @@ doc ///
 TEST ///
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1,2}, P);
-installBasisElements(F, 1);
-installBasisElements(F, 2);
+installGeneratorsInWidth(F, 1);
+installGeneratorsInWidth(F, 2);
 use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
 use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
 B = oiGB {b1, b2};
@@ -2737,7 +2776,7 @@ assert isOIGB B
 TEST ///
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
-installBasisElements(F, 2);
+installGeneratorsInWidth(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
 B = oiGB {b};
 assert(#B === 2);
@@ -2750,33 +2789,34 @@ assert isOIGB C
 TEST ///
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,2}, P);
-installBasisElements(F, 3);
+installGeneratorsInWidth(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
 C = oiRes({b}, 2);
 assert isComplex C;
 assert(getRank C_0 === 1);
 assert(getRank C_1 === 2);
-assert(apply(getGenerators C_0, getWidth) === {3});
-assert(apply(getGenerators C_1, getWidth) === {5, 5})
+assert(apply(getBasisElements C_0, getWidth) === {3});
+assert(apply(getBasisElements C_1, getWidth) === {5, 5})
 ///
 
 -- TEST 3
 TEST ///
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
-installBasisElements(F, 2);
+installGeneratorsInWidth(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
 C = oiRes({b}, 3);
 assert isComplex C;
 assert isHomogeneous(C.dd_0);
 assert isHomogeneous(C.dd_1);
 assert isHomogeneous(C.dd_2);
+assert isHomogeneous(C.dd_3);
 assert(getRank C_0 === 1);
 assert(getRank C_1 === 1);
 assert(getRank C_2 === 2);
-assert(apply(getGenerators C_0, getWidth) === {2});
-assert(apply(getGenerators C_1, getWidth) === {4});
-assert(apply(getGenerators C_2, getWidth) === {5,5})
+assert(apply(getBasisElements C_0, getWidth) === {2});
+assert(apply(getBasisElements C_1, getWidth) === {4});
+assert(apply(getBasisElements C_2, getWidth) === {5,5})
 ///
 
 end
@@ -2786,8 +2826,8 @@ end
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1,2}, P);
-installBasisElements(F, 1);
-installBasisElements(F, 2);
+installGeneratorsInWidth(F, 1);
+installGeneratorsInWidth(F, 2);
 use F_1; b1 = x_(1,1)*e_(1,{1},1)+x_(2,1)*e_(1,{1},2);
 use F_2; b2 = x_(1,2)*x_(1,1)*e_(2,{2},2)+x_(2,2)*x_(2,1)*e_(2,{1,2},3);
 time B = oiGB({b1, b2}, Verbose => true)
@@ -2797,7 +2837,7 @@ time B = oiGB({b1, b2}, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,2}, P);
-installBasisElements(F, 3);
+installGeneratorsInWidth(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
 time C = oiRes({b}, 2, Verbose => true)
 
@@ -2806,7 +2846,7 @@ time C = oiRes({b}, 2, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
-installBasisElements(F, 2);
+installGeneratorsInWidth(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
 time C = oiRes({b}, 4, Verbose => true)
 
@@ -2815,7 +2855,7 @@ time C = oiRes({b}, 4, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1}, P);
-installBasisElements(F, 2);
+installGeneratorsInWidth(F, 2);
 b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},1);
 time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 30 minutes (minimal ranks 1, 2, 5, 9, 14)
 
@@ -2824,7 +2864,7 @@ time C = oiRes({b}, 5, Verbose => true) -- Takes my laptop 30 minutes (minimal r
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
-installBasisElements(F, 3);
+installGeneratorsInWidth(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
 time C = oiRes({b}, 5, Verbose => true)
 
@@ -2833,7 +2873,7 @@ time C = oiRes({b}, 5, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {0}, P);
-installBasisElements(F, 3);
+installGeneratorsInWidth(F, 3);
 b = (x_(1,1)*x_(2,3)-x_(2,1)*x_(1,3))*e_(3,{},1);
 time C = oiRes({b}, 2, Verbose => true)
 
@@ -2842,7 +2882,7 @@ time C = oiRes({b}, 2, Verbose => true)
 restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
-installBasisElements(F, 3);
+installGeneratorsInWidth(F, 3);
 b = x_(1,2)*x_(1,1)*e_(3,{3},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
 time C = oiRes({b}, 3, Verbose => true)
 ranks C

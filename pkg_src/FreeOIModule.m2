@@ -9,7 +9,7 @@ net FreeOIModule := F -> (
     else error "invalid monomial order";
 
     "Basis symbol: " | net F.basisSym ||
-    "Generator widths: " | net F.genWidths ||
+    "Basis element widths: " | net F.genWidths ||
     "Degree shifts: " | net F.degShifts ||
     "Polynomial OI-algebra: " | toString F.polyOIAlg ||
     "Monomial order: " | monOrderNet
@@ -120,9 +120,9 @@ makeZero := M -> (
     makeVectorInWidth(M, A)
 )
 
--- Install the basis elements in a given width
-installBasisElements = method();
-installBasisElements(FreeOIModule, ZZ) := (F, n) -> (
+-- Install the generators in a given width
+installGeneratorsInWidth = method();
+installGeneratorsInWidth(FreeOIModule, ZZ) := (F, n) -> (
     M := getModuleInWidth(F, n);
     K := getBasisKeys(F, n);
     
@@ -149,19 +149,19 @@ keyedTerms := v -> flatten for key in keys v list
 keyedSingles := v -> flatten for key in keys v list
     if zero v#key then continue else makeKeyedVectorInWidth(class v, key, v#key)
 
--- Get the ith generator of a FreeOIModule
+-- Get the ith basis element of a FreeOIModule
 -- Args: F = FreeOIModule, i = ZZ
 -- Comment: expects 0 <= i <= #F.genWidths - 1
-getGenerator := (F, i) -> (
+getBasisElement := (F, i) -> (
     n := F.genWidths#i;
     M := getModuleInWidth(F, n);
     key := (makeOIMap(n, toList(1..n)), i + 1);
     makeSingle(M, key, 1_(getAlgebraInWidth(F.polyOIAlg, n)))
 )
 
--- Get the generators of a FreeOIModule
-getGenerators = method(TypicalValue => List)
-getGenerators FreeOIModule := F -> for i to #F.genWidths - 1 list getGenerator(F, i)
+-- Get the basis elements of a FreeOIModule
+getBasisElements = method(TypicalValue => List)
+getBasisElements FreeOIModule := F -> for i to #F.genWidths - 1 list getBasisElement(F, i)
 
 -- Get the keyed lead term of a VectorInWidth
 keyedLeadTerm := v -> (
@@ -363,7 +363,7 @@ InducedModuleMap VectorInWidth := (f, v) -> (
 -- Should be of the form {srcMod => FreeOIModule, targMod => FreeOIModule, genImages => List}
 FreeOIModuleMap = new Type of HashTable
 
-net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Generator images: " | net f.genImages
+net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Basis element images: " | net f.genImages
 
 -- Check if a FreeOIModuleMap is zero
 isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(f.genImages, isZero) === set {true}
@@ -389,7 +389,10 @@ isHomogeneous FreeOIModuleMap := f -> (
 
     for elt in f.genImages do if not isHomogeneous elt then return false;
 
-    -f.srcMod.degShifts === apply(f.genImages, degree)
+    -- -f.srcMod.degShifts === apply(f.genImages, degree)
+    for i to #f.genImages - 1 do if not (isZero(f.genImages#i) or -f.srcMod.degShifts#i === degree(f.genImages#i)) then return false;
+
+    true
 )
 
 -- Compute the n-orbit of a List of VectorInWidth objects
@@ -398,4 +401,10 @@ oiOrbit(List, ZZ) := (L, n) -> (
     if n < 0 then error "expected a nonnegative integer";
 
     unique flatten for elt in L list for oimap in getOIMaps(getWidth elt, n) list (getInducedModuleMap(getFreeOIModule elt, oimap)) elt
+)
+
+-- Get the Schreyer map of a FreeOIModule object, if it exists
+getSchreyerMap = method(TypicalValue => FreeOIModuleMap)
+getSchreyerMap FreeOIModule := F -> if not instance(F.monOrder, List) then error "invalid monomial order" else (
+    new FreeOIModuleMap from {srcMod => F, targMod => getFreeOIModule(F.monOrder#0), genImages => F.monOrder}
 )
