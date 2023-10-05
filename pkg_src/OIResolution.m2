@@ -12,7 +12,7 @@ net OIResolution := C -> (
 
 describe OIResolution := C -> (
     N := "0: Module: " | net C.modules#0 || "Differential: " | net C.dd#0;
-    for i from 1 to #C.modules - 1 do N = N || toString i | ": Module: " | net C.modules#i || "Differential: " | net C.dd#i;
+    for i from 1 to #C.modules - 1 do N = N || toString i | ": Module: " | net C.modules#i || "Differential: " | describe C.dd#i;
     N
 )
 

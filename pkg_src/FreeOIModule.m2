@@ -363,7 +363,9 @@ InducedModuleMap VectorInWidth := (f, v) -> (
 -- Should be of the form {srcMod => FreeOIModule, targMod => FreeOIModule, genImages => List}
 FreeOIModuleMap = new Type of HashTable
 
-net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Basis element images: " | net f.genImages
+describe FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Basis element images: " | net f.genImages
+
+net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod
 
 -- Check if a FreeOIModuleMap is zero
 isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(f.genImages, isZero) === set {true}

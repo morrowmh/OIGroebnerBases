@@ -571,7 +571,9 @@ InducedModuleMap VectorInWidth := (f, v) -> (
 -- Should be of the form {srcMod => FreeOIModule, targMod => FreeOIModule, genImages => List}
 FreeOIModuleMap = new Type of HashTable
 
-net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Basis element images: " | net f.genImages
+describe FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod || "Basis element images: " | net f.genImages
+
+net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod
 
 -- Check if a FreeOIModuleMap is zero
 isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(f.genImages, isZero) === set {true}
@@ -1036,7 +1038,7 @@ net OIResolution := C -> (
 
 describe OIResolution := C -> (
     N := "0: Module: " | net C.modules#0 || "Differential: " | net C.dd#0;
-    for i from 1 to #C.modules - 1 do N = N || toString i | ": Module: " | net C.modules#i || "Differential: " | net C.dd#i;
+    for i from 1 to #C.modules - 1 do N = N || toString i | ": Module: " | net C.modules#i || "Differential: " | describe C.dd#i;
     N
 )
 
@@ -1331,6 +1333,7 @@ doc ///
         (symbol *,RingElement,VectorInWidth)
         (symbol -,VectorInWidth)
         (symbol -,VectorInWidth,VectorInWidth)
+        (describe,FreeOIModuleMap)
         (isHomogeneous,FreeOIModuleMap)
         (isHomogeneous,VectorInWidth)
         :OI-Gröbner bases
@@ -1924,9 +1927,33 @@ doc ///
     Key
         (net,FreeOIModuleMap)
     Headline
-        display a free OI-module map
+        display a free OI-module map source and target
     Usage
         net phi
+    Inputs
+        phi:FreeOIModuleMap
+    Outputs
+        :Net
+    Description
+        Text
+            Displays the source module and target module a free OI-module map.
+        Example
+            P = makePolynomialOIAlgebra(2, x, QQ);
+            F = makeFreeOIModule(e, {1,2}, P);
+            installGeneratorsInWidth(F, 3);
+            b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
+            C = oiRes({b}, 2);
+            phi = C.dd_1;
+            net phi
+///
+
+doc ///
+    Key
+        (describe,FreeOIModuleMap)
+    Headline
+        display a free OI-module map
+    Usage
+        describe phi
     Inputs
         phi:FreeOIModuleMap
     Outputs
@@ -1941,7 +1968,7 @@ doc ///
             b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
             C = oiRes({b}, 2);
             phi = C.dd_1;
-            net phi
+            describe phi
 ///
 
 doc ///

@@ -70,6 +70,7 @@ doc ///
         (symbol *,RingElement,VectorInWidth)
         (symbol -,VectorInWidth)
         (symbol -,VectorInWidth,VectorInWidth)
+        (describe,FreeOIModuleMap)
         (isHomogeneous,FreeOIModuleMap)
         (isHomogeneous,VectorInWidth)
         :OI-Gröbner bases
@@ -663,9 +664,33 @@ doc ///
     Key
         (net,FreeOIModuleMap)
     Headline
-        display a free OI-module map
+        display a free OI-module map source and target
     Usage
         net phi
+    Inputs
+        phi:FreeOIModuleMap
+    Outputs
+        :Net
+    Description
+        Text
+            Displays the source module and target module a free OI-module map.
+        Example
+            P = makePolynomialOIAlgebra(2, x, QQ);
+            F = makeFreeOIModule(e, {1,2}, P);
+            installGeneratorsInWidth(F, 3);
+            b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
+            C = oiRes({b}, 2);
+            phi = C.dd_1;
+            net phi
+///
+
+doc ///
+    Key
+        (describe,FreeOIModuleMap)
+    Headline
+        display a free OI-module map
+    Usage
+        describe phi
     Inputs
         phi:FreeOIModuleMap
     Outputs
@@ -680,7 +705,7 @@ doc ///
             b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
             C = oiRes({b}, 2);
             phi = C.dd_1;
-            net phi
+            describe phi
 ///
 
 doc ///
