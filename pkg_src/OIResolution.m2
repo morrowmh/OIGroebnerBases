@@ -12,6 +12,13 @@ net OIResolution := C -> (
 
 describe OIResolution := C -> (
     N := "0: Module: " | net C.modules#0 || "Differential: " | net C.dd#0;
+    for i from 1 to #C.modules - 1 do N = N || toString i | ": Module: " | net C.modules#i || "Differential: " | net C.dd#i;
+    N
+)
+
+describeFull = method(TypicalValue => Net)
+describeFull OIResolution := C -> (
+    N := "0: Module: " | net C.modules#0 || "Differential: " | net C.dd#0;
     for i from 1 to #C.modules - 1 do N = N || toString i | ": Module: " | net C.modules#i || "Differential: " | describe C.dd#i;
     N
 )
@@ -20,6 +27,13 @@ ranks = method(TypicalValue => Net)
 ranks OIResolution := C -> (
     N := "0: rank " | toString getRank C.modules#0;
     for i from 1 to #C.modules - 1 do N = N || toString i | ": rank " | toString getRank C.modules#i;
+    N
+)
+
+restrictedRanks = method(TypicalValue => Net)
+restrictedRanks(OIResolution, ZZ) := (C, w) -> (
+    N := "0: rank " | #degrees ((C_0)_w).rawMod;
+    for i from 1 to #C.modules - 1 do N = N || toString i | ": rank " | #degrees ((C_i)_w).rawMod;
     N
 )
 

@@ -367,6 +367,8 @@ describe FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | 
 
 net FreeOIModuleMap := f -> "Source: " | toString f.srcMod | " Target: " | toString f.targMod
 
+image FreeOIModuleMap := f -> f.genImages
+
 -- Check if a FreeOIModuleMap is zero
 isZero FreeOIModuleMap := f -> isZero f.srcMod or isZero f.targMod or set apply(f.genImages, isZero) === set {true}
 

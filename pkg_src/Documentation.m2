@@ -57,6 +57,7 @@ doc ///
         (net,FreeOIModuleMap)
         (net,ModuleInWidth)
         (net,VectorInWidth)
+        (image,FreeOIModuleMap)
         (toString,FreeOIModule)
         (symbol _,FreeOIModule,ZZ)
         (degree,VectorInWidth)
@@ -84,8 +85,10 @@ doc ///
         OIResolution
         oiRes
         ranks
+        restrictedRanks
         TopNonminimal
         isComplex
+        describeFull
         (describe,OIResolution)
         (net,OIResolution)
         (symbol _,OIResolution,ZZ)
@@ -682,6 +685,30 @@ doc ///
             C = oiRes({b}, 2);
             phi = C.dd_1;
             net phi
+///
+
+doc ///
+    Key
+        (image,FreeOIModuleMap)
+    Headline
+        get the basis element images of a free OI-module map
+    Usage
+        image phi
+    Inputs
+        phi:FreeOIModuleMap
+    Outputs
+        :List
+    Description
+        Text
+            Returns a list containing the basis element images of a free OI-module map.
+        Example
+            P = makePolynomialOIAlgebra(2, x, QQ);
+            F = makeFreeOIModule(e, {1,2}, P);
+            installGeneratorsInWidth(F, 3);
+            b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1,3},2);
+            C = oiRes({b}, 2);
+            phi = C.dd_1;
+            image phi
 ///
 
 doc ///
@@ -1346,6 +1373,30 @@ doc ///
 
 doc ///
     Key
+        describeFull
+        (describeFull, OIResolution)
+    Headline
+        describe an OI-resolution and the maps
+    Usage
+        describe C
+    Inputs
+        C:OIResolution
+    Outputs
+        :Net
+    Description
+        Text
+            Displays the free OI-modules and describes the differentials of an OI-resolution.
+        Example
+            P = makePolynomialOIAlgebra(2, x, QQ);
+            F = makeFreeOIModule(e, {1,1}, P);
+            installGeneratorsInWidth(F, 2);
+            b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+            time C = oiRes({b}, 1);
+            describeFull C 
+///
+
+doc ///
+    Key
         (describe,OIResolution)
     Headline
         describe an OI-resolution
@@ -1474,6 +1525,32 @@ doc ///
             b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
             C = oiRes({b}, 2)
             ranks C
+///
+
+doc ///
+    Key
+        restrictedRanks
+        (restrictedRanks,OIResolution,ZZ)
+    Headline
+        display the ranks of an OI-resolution restricted to a given width
+    Usage
+        restrictedRanks(C,w)
+    Inputs
+        C:OIResolution
+        w:ZZ
+    Outputs
+        :Net
+    Description
+        Text
+            Given an OI-resolution $C$ and a width $w$, this method displays the ranks of the modules in $C$ restricted to width $w$.
+        Example
+            P = makePolynomialOIAlgebra(2, x, QQ);
+            F = makeFreeOIModule(e, {1,1}, P);
+            installGeneratorsInWidth(F, 2);
+            b = x_(1,2)*x_(1,1)*e_(2,{2},1)+x_(2,2)*x_(2,1)*e_(2,{1},2);
+            C = oiRes({b}, 2)
+            ranks C
+            restrictedRanks(C,5)
 ///
 
 doc ///

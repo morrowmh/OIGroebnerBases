@@ -136,6 +136,6 @@ restart
 P = makePolynomialOIAlgebra(2, x, QQ);
 F = makeFreeOIModule(e, {1,1}, P);
 installGeneratorsInWidth(F, 3);
-b = x_(1,2)*x_(1,1)*e_(3,{3},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
+b = x_(1,2)*x_(1,1)*e_(3,{2},1)+x_(2,2)*x_(2,1)*e_(3,{1},2);
 time C = oiRes({b}, 3, Verbose => true)
 ranks C
